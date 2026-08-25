@@ -17,6 +17,21 @@ export default async function handler(req, res) {
     return;
   }
 
+  const appPassword = process.env.APP_PASSWORD;
+  if (appPassword) {
+    const provided = req.headers['x-app-password'];
+    if (provided !== appPassword) {
+      res.status(401).json({ error: '合言葉が違います' });
+      return;
+    }
+  }
+
+  // ログイン時の合言葉チェックのみ（remove.bgへは送信しない、無料枠を消費しない）
+  if (req.body && req.body.verifyOnly) {
+    res.status(200).json({ ok: true });
+    return;
+  }
+
   const apiKey = process.env.REMOVE_BG_API_KEY;
   if (!apiKey) {
     res.status(500).json({ error: 'サーバー側にREMOVE_BG_API_KEYが設定されていません（Vercelの環境変数を確認してください）' });

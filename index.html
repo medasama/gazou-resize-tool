@@ -99,10 +99,40 @@
   .status.ok{ color:var(--done); font-weight:700; }
   .status.err{ color:var(--pink); font-weight:700; }
 
+  #gate{
+    position:fixed; inset:0; background:linear-gradient(180deg,var(--bg-top) 0%, var(--bg-bot) 100%);
+    display:flex; align-items:center; justify-content:center; z-index:999; padding:20px;
+  }
+  #gate .box{
+    background:var(--card); border-radius:18px; padding:26px 24px; max-width:320px; width:100%;
+    box-shadow:0 6px 18px rgba(46,58,70,.1); text-align:center;
+  }
+  #gate .box .emoji{ font-size:28px; margin-bottom:8px; }
+  #gate .box h2{ font-size:15px; margin:0 0 14px; }
+  #gate input{
+    width:100%; padding:11px 14px; border-radius:12px; border:1px solid var(--line);
+    font-size:14px; font-family:inherit; text-align:center; margin-bottom:10px;
+  }
+  #gate button{
+    width:100%; padding:11px; border-radius:12px; border:none; background:var(--gold); color:#fff;
+    font-weight:700; font-size:14px; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
+  }
+  #gate .err{ color:var(--pink); font-size:12px; margin-bottom:8px; min-height:14px; }
+  body.locked > *:not(#gate){ display:none; }
+
   footer{ text-align:center; margin-top:24px; font-size:11px; color:#A7B2B8; }
 </style>
 </head>
-<body>
+<body class="locked">
+<div id="gate">
+  <div class="box">
+    <div class="emoji">🐟</div>
+    <h2>合言葉を入力してください</h2>
+    <div class="err" id="gateErr"></div>
+    <input type="password" id="gatePw" placeholder="合言葉">
+    <button id="gateBtn">開く</button>
+  </div>
+</div>
 <div class="wrap">
   <header>
     <svg viewBox="0 0 64 64"><ellipse cx="32" cy="44" rx="26" ry="14" fill="#DCEEF1"/><path d="M8 40 Q32 58 56 40 L56 44 Q32 62 8 44 Z" fill="#7BC4D3"/><circle cx="26" cy="34" r="6" fill="#E8A33D"/><path d="M20 34 L14 30 L14 38 Z" fill="#E8A33D"/><circle cx="28" cy="32" r="1.2" fill="#2E3A46"/></svg>
@@ -175,6 +205,60 @@
   <div class="status" id="status"></div>
 </div>
 <footer>リサイズ処理はブラウザ内で完結します。背景透過をONにした場合のみ、画像はremove.bgへ送信されます</footer>
+
+<script>
+const PW_KEY = 'gazou-resize-tool-pw';
+
+function getSavedPassword(){
+  try{ return localStorage.getItem(PW_KEY) || ''; }catch(e){ return ''; }
+}
+function savePassword(pw){
+  try{ localStorage.setItem(PW_KEY, pw); }catch(e){}
+}
+function clearSavedPassword(){
+  try{ localStorage.removeItem(PW_KEY); }catch(e){}
+}
+function unlock(){
+  document.body.classList.remove('locked');
+}
+
+const gatePw = document.getElementById('gatePw');
+const gateBtn = document.getElementById('gateBtn');
+const gateErr = document.getElementById('gateErr');
+
+async function verifyPassword(pw){
+  const res = await fetch('/api/removebg', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-App-Password': pw },
+    body: JSON.stringify({ verifyOnly: true }),
+  });
+  return res.ok;
+}
+
+if(getSavedPassword()){
+  unlock(); // 体感を軽くするため楽観的に解除。実チェックはbg除去リクエスト時に行う
+}
+
+gateBtn.addEventListener('click', async ()=>{
+  const pw = gatePw.value;
+  gateBtn.disabled = true;
+  gateErr.textContent = '確認中…';
+  try{
+    const ok = await verifyPassword(pw);
+    if(ok){
+      savePassword(pw);
+      gateErr.textContent = '';
+      unlock();
+    }else{
+      gateErr.textContent = '合言葉が違います';
+    }
+  }catch(e){
+    gateErr.textContent = '確認できませんでした。通信環境をご確認ください。';
+  }
+  gateBtn.disabled = false;
+});
+gatePw.addEventListener('keydown', e=>{ if(e.key==='Enter') gateBtn.click(); });
+</script>
 
 <script>
 const SIZES = {
@@ -298,12 +382,17 @@ async function removeBackground(img){
   const base64 = downscaleToBase64(img, REMOVEBG_MAX_DIM);
   const res = await fetch('/api/removebg', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'X-App-Password': getSavedPassword() },
     body: JSON.stringify({ imageBase64: base64, size: 'preview' }),
   });
   if(!res.ok){
     let msg = `remove.bg処理に失敗しました (HTTP ${res.status})`;
     try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+    if(res.status === 401){
+      clearSavedPassword();
+      document.body.classList.add('locked');
+      msg = '合言葉の確認が取れませんでした。もう一度入力してください。';
+    }
     throw new Error(msg);
   }
   const blob = await res.blob();
