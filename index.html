@@ -220,6 +220,7 @@ function clearSavedPassword(){
 }
 function unlock(){
   document.body.classList.remove('locked');
+  document.getElementById('gate').style.display = 'none';
 }
 
 const gatePw = document.getElementById('gatePw');
