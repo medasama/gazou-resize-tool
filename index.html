@@ -99,6 +99,28 @@
   .status.ok{ color:var(--done); font-weight:700; }
   .status.err{ color:var(--pink); font-weight:700; }
 
+  .custom-add{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .custom-add input[type="text"]{ flex:1; min-width:120px; }
+  .custom-add input[type="number"]{ width:90px; }
+  .custom-add input{
+    padding:10px 12px; border-radius:10px; border:1px solid var(--line);
+    font-size:13px; font-family:inherit; background:#fff;
+  }
+  .custom-add .x{ color:var(--ink-soft); font-size:13px; }
+  .custom-add button{
+    padding:10px 16px; border-radius:10px; border:none; background:var(--teal); color:#fff;
+    font-weight:700; font-size:13px; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
+  }
+  .custom-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:9px 14px; border-radius:10px; background:var(--teal-soft); margin-bottom:8px; font-size:13px;
+  }
+  .custom-item b{ font-family:'M PLUS Rounded 1c',sans-serif; }
+  .custom-item .rm{
+    background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:13px;
+  }
+  .custom-item .rm:hover{ color:var(--pink); }
+
   #gate{
     position:fixed; inset:0; background:linear-gradient(180deg,var(--bg-top) 0%, var(--bg-bot) 100%);
     display:flex; align-items:center; justify-content:center; z-index:999; padding:20px;
@@ -198,6 +220,19 @@
         <input type="checkbox" checked>
         <div class="meta"><b>トークタブ画像</b><span>96×74px</span></div>
       </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>5. 任意サイズ（カバー画像など）</h2>
+    <p class="sub">幅と高さをpxで指定。余白は作らず、はみ出た部分は自動でトリミングして枠いっぱいに埋めます</p>
+    <div id="customList"></div>
+    <div class="custom-add">
+      <input type="text" id="customLabel" placeholder="名前（例: cover）" maxlength="20">
+      <input type="number" id="customW" placeholder="幅px" min="1">
+      <span class="x">×</span>
+      <input type="number" id="customH" placeholder="高さpx" min="1">
+      <button id="customAddBtn" type="button">追加</button>
     </div>
   </div>
 
@@ -342,16 +377,56 @@ function selectedSizes(){
   return Array.from(document.querySelectorAll('.opts:not(#padOpts) .opt')).filter(o=>o.querySelector('input').checked).map(o=>o.dataset.key);
 }
 
+// ── 任意サイズ ──
+let customSizes = []; // {id, label, w, h}
+const customListEl = document.getElementById('customList');
+const customLabel = document.getElementById('customLabel');
+const customW = document.getElementById('customW');
+const customH = document.getElementById('customH');
+const customAddBtn = document.getElementById('customAddBtn');
+
+function renderCustomList(){
+  customListEl.innerHTML = '';
+  customSizes.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'custom-item';
+    div.innerHTML = `<span><b>${c.label}</b>　${c.w}×${c.h}px</span><button class="rm">✕ 削除</button>`;
+    div.querySelector('.rm').onclick = ()=>{
+      customSizes = customSizes.filter(x=>x.id!==c.id);
+      renderCustomList();
+      updateRunBtn();
+    };
+    customListEl.appendChild(div);
+  });
+}
+
+customAddBtn.addEventListener('click', ()=>{
+  const w = parseInt(customW.value, 10);
+  const h = parseInt(customH.value, 10);
+  if(!w || !h || w<1 || h<1){
+    statusEl.className = 'status err';
+    statusEl.textContent = '幅と高さを正しく入力してください';
+    return;
+  }
+  const label = (customLabel.value.trim() || 'custom').replace(/[^\w\-ぁ-んァ-ヶ一-龠ー]/g, '');
+  customSizes.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,5), label, w, h });
+  customLabel.value = ''; customW.value=''; customH.value='';
+  statusEl.className = 'status'; statusEl.textContent = '';
+  renderCustomList();
+  updateRunBtn();
+});
+
 function updateRunBtn(){
   const sizes = selectedSizes();
+  const totalSizeCount = sizes.length + customSizes.length;
   if(files.length === 0){
     runBtn.disabled = true; runBtn.textContent = '画像を追加してください';
-  } else if(sizes.length === 0){
+  } else if(totalSizeCount === 0){
     runBtn.disabled = true; runBtn.textContent = 'サイズを1つ以上選んでください';
   } else {
     runBtn.disabled = false;
     const bgLabel = bgToggle.checked ? '（背景透過あり）' : '';
-    runBtn.textContent = `${files.length}枚 × ${sizes.length}サイズ を書き出す${bgLabel}`;
+    runBtn.textContent = `${files.length}枚 × ${totalSizeCount}サイズ を書き出す${bgLabel}`;
   }
 }
 bgToggle.addEventListener('change', updateRunBtn);
@@ -426,6 +501,22 @@ function renderToCanvas(img, targetW, targetH, innerPad, padColor){
   return canvas;
 }
 
+// 任意サイズ用：余白なしで枠いっぱいに埋める（中央基準ではみ出た部分を自動トリミング）
+function renderToCanvasCover(img, targetW, targetH){
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW; canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+
+  const scale = Math.max(targetW/img.width, targetH/img.height);
+  const drawW = img.width*scale;
+  const drawH = img.height*scale;
+  const dx = (targetW - drawW)/2;
+  const dy = (targetH - drawH)/2;
+
+  ctx.drawImage(img, dx, dy, drawW, drawH);
+  return canvas;
+}
+
 function canvasToBlob(canvas){
   return new Promise(res=> canvas.toBlob(res, 'image/png'));
 }
@@ -436,7 +527,8 @@ function baseName(filename){
 
 runBtn.addEventListener('click', async ()=>{
   const sizes = selectedSizes();
-  if(files.length===0 || sizes.length===0) return;
+  const totalSizeCount = sizes.length + customSizes.length;
+  if(files.length===0 || totalSizeCount===0) return;
 
   if(typeof JSZip === 'undefined'){
     statusEl.className = 'status err';
@@ -451,14 +543,14 @@ runBtn.addEventListener('click', async ()=>{
   const zip = new JSZip();
   let count = 0;
   let failed = 0;
-  const total = files.length * sizes.length;
+  const total = files.length * totalSizeCount;
   const doBgRemoval = bgToggle.checked;
 
   try{
     for(const f of files){
       let img;
       try{ img = await loadImage(f.url); }
-      catch(e){ failed += sizes.length; continue; }
+      catch(e){ failed += totalSizeCount; continue; }
 
       if(doBgRemoval){
         statusEl.textContent = `背景透過中… (${f.file.name})`;
@@ -467,7 +559,7 @@ runBtn.addEventListener('click', async ()=>{
         }catch(e){
           statusEl.className = 'status err';
           statusEl.textContent = `${f.file.name}：${e.message}`;
-          failed += sizes.length;
+          failed += totalSizeCount;
           continue;
         }
       }
@@ -481,6 +573,17 @@ runBtn.addEventListener('click', async ()=>{
         const blob = await canvasToBlob(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
+        zip.file(outName, blob);
+        count++;
+        statusEl.className = 'status';
+        statusEl.textContent = `書き出し中… (${count}/${total})`;
+      }
+
+      for(const c of customSizes){
+        const canvas = renderToCanvasCover(img, c.w, c.h);
+        const blob = await canvasToBlob(canvas);
+        if(!blob){ failed++; continue; }
+        const outName = `${base}_${c.label}_${c.w}x${c.h}.png`;
         zip.file(outName, blob);
         count++;
         statusEl.className = 'status';
