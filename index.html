@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>スタンプ画像ツール</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
+
+  :root{
+    --bg-top:#EAF2F6; --bg-bot:#F7EFE3; --card:#FFFFFF;
+    --ink:#2E3A46; --ink-soft:#6B7A85;
+    --gold:#E8A33D; --gold-soft:#FCEBCB;
+    --teal:#4E8FA1; --teal-soft:#DCEEF1;
+    --pink:#F0879A; --line:#E4E9EC; --done:#5FAE7A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; min-height:100vh;
+    background:linear-gradient(180deg,var(--bg-top) 0%, var(--bg-bot) 100%);
+    font-family:'Zen Kaku Gothic New',sans-serif; color:var(--ink);
+    padding:28px 20px 80px;
+  }
+  h1,h2,.title-font{ font-family:'M PLUS Rounded 1c',sans-serif; }
+  .wrap{ max-width:920px; margin:0 auto; }
+
+  header{ display:flex; align-items:center; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+  header svg{ width:56px; height:56px; flex-shrink:0; }
+  header h1{ font-size:21px; font-weight:800; margin:0 0 2px; }
+  header p{ margin:0; font-size:12.5px; color:var(--ink-soft); }
+
+  .panel{
+    background:var(--card); border-radius:18px; padding:18px 20px;
+    box-shadow:0 6px 18px rgba(46,58,70,.06); margin-bottom:18px;
+  }
+  .panel h2{ font-size:14.5px; margin:0 0 4px; color:var(--ink); }
+  .panel .sub{ font-size:11.5px; color:var(--ink-soft); margin:0 0 12px; }
+
+  .drop{
+    border:2px dashed #C9D6DA; border-radius:14px; padding:32px 16px;
+    text-align:center; cursor:pointer; transition:all .15s ease; background:var(--teal-soft);
+  }
+  .drop.drag{ border-color:var(--teal); background:#CDE7EC; }
+  .drop p{ margin:6px 0 0; font-size:13px; color:var(--ink-soft); }
+  .drop strong{ color:var(--teal); font-family:'M PLUS Rounded 1c',sans-serif; }
+  .drop input{ display:none; }
+
+  .opts{ display:flex; flex-wrap:wrap; gap:10px; }
+  .opt{
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:12px;
+    background:var(--teal-soft); border:1.5px solid transparent; cursor:pointer; font-size:13px;
+    flex:1; min-width:200px;
+  }
+  .opt.active{ border-color:var(--teal); background:#fff; }
+  .opt input{ accent-color:var(--teal); width:16px; height:16px; }
+  .opt .meta{ display:flex; flex-direction:column; }
+  .opt .meta b{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:13px; }
+  .opt .meta span{ font-size:11px; color:var(--ink-soft); }
+
+  .toggle-row{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:12px 14px; border-radius:12px; background:var(--gold-soft);
+  }
+  .toggle-row .meta b{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:13.5px; }
+  .toggle-row .meta span{ font-size:11.5px; color:var(--ink-soft); display:block; margin-top:2px; }
+  .switch{ position:relative; width:42px; height:24px; flex-shrink:0; }
+  .switch input{ opacity:0; width:0; height:0; }
+  .slider{
+    position:absolute; inset:0; background:#D8CBB2; border-radius:999px; cursor:pointer; transition:.2s;
+  }
+  .slider::before{
+    content:''; position:absolute; width:18px; height:18px; left:3px; top:3px;
+    background:#fff; border-radius:50%; transition:.2s;
+  }
+  .switch input:checked + .slider{ background:var(--gold); }
+  .switch input:checked + .slider::before{ transform:translateX(18px); }
+
+  .thumbs{ display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin-top:14px; }
+  .thumb{ position:relative; border-radius:10px; overflow:hidden; background:#F3F6F7; border:1px solid var(--line); aspect-ratio:1/1; }
+  .thumb img{ width:100%; height:100%; object-fit:contain; }
+  .thumb .name{
+    position:absolute; bottom:0; left:0; right:0; font-size:9.5px; text-align:center;
+    background:rgba(46,58,70,.6); color:#fff; padding:2px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .thumb .rm{
+    position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
+    background:rgba(46,58,70,.65); color:#fff; border:none; cursor:pointer; font-size:11px; line-height:1;
+  }
+
+  .runbtn{
+    width:100%; padding:14px; border-radius:14px; border:none; background:var(--gold); color:#fff;
+    font-weight:800; font-size:15px; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
+    margin-top:16px; display:flex; align-items:center; justify-content:center; gap:8px;
+  }
+  .runbtn:disabled{ background:#DDD3C2; cursor:not-allowed; }
+  .runbtn:active:not(:disabled){ transform:translateY(1px); }
+
+  .status{ font-size:12.5px; color:var(--ink-soft); text-align:center; margin-top:10px; min-height:16px; }
+  .status.ok{ color:var(--done); font-weight:700; }
+  .status.err{ color:var(--pink); font-weight:700; }
+
+  footer{ text-align:center; margin-top:24px; font-size:11px; color:#A7B2B8; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <svg viewBox="0 0 64 64"><ellipse cx="32" cy="44" rx="26" ry="14" fill="#DCEEF1"/><path d="M8 40 Q32 58 56 40 L56 44 Q32 62 8 44 Z" fill="#7BC4D3"/><circle cx="26" cy="34" r="6" fill="#E8A33D"/><path d="M20 34 L14 30 L14 38 Z" fill="#E8A33D"/><circle cx="28" cy="32" r="1.2" fill="#2E3A46"/></svg>
+    <div>
+      <h1>スタンプ画像ツール</h1>
+      <p>アップロード → （必要なら背景透過）→ サイズ選択 → 一括ダウンロード</p>
+    </div>
+  </header>
+
+  <div class="panel">
+    <h2>1. 画像をアップロード（複数まとめてOK）</h2>
+    <p class="sub">PNG / JPG 対応</p>
+    <div class="drop" id="drop">
+      <div style="font-size:26px;">🐟</div>
+      <p><strong>クリックして選択</strong>、またはここにドラッグ＆ドロップ</p>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
+    <div class="thumbs" id="thumbs"></div>
+  </div>
+
+  <div class="panel">
+    <h2>2. 背景透過</h2>
+    <p class="sub">remove.bg APIを使って自動で背景を消す（無料枠：月50回・0.25メガピクセルまで）</p>
+    <div class="toggle-row">
+      <div class="meta">
+        <b>背景透過を自動で行う</b>
+        <span>すでに透過済みの画像には不要。白背景などが残っている画像に使用</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="bgToggle">
+        <span class="slider"></span>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>3. 余白の色</h2>
+    <p class="sub">規定サイズに収める際、はみ出た部分に足す余白の色</p>
+    <div class="opts" id="padOpts">
+      <label class="opt active" data-pad="transparent">
+        <input type="radio" name="pad" checked>
+        <div class="meta"><b>透明</b><span>LINEスタンプの標準</span></div>
+      </label>
+      <label class="opt" data-pad="white">
+        <input type="radio" name="pad">
+        <div class="meta"><b>白</b><span>背景透過をしない場合など</span></div>
+      </label>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>4. 出力するサイズを選択</h2>
+    <div class="opts">
+      <label class="opt active" data-key="main">
+        <input type="checkbox" checked>
+        <div class="meta"><b>メイン画像</b><span>240×240px</span></div>
+      </label>
+      <label class="opt active" data-key="stamp">
+        <input type="checkbox" checked>
+        <div class="meta"><b>スタンプ画像</b><span>370×320px（内側10px余白を自動確保）</span></div>
+      </label>
+      <label class="opt active" data-key="tab">
+        <input type="checkbox" checked>
+        <div class="meta"><b>トークタブ画像</b><span>96×74px</span></div>
+      </label>
+    </div>
+  </div>
+
+  <button class="runbtn" id="runBtn" disabled>画像を追加してください</button>
+  <div class="status" id="status"></div>
+</div>
+<footer>リサイズ処理はブラウザ内で完結します。背景透過をONにした場合のみ、画像はremove.bgへ送信されます</footer>
+
+<script>
+const SIZES = {
+  main:  { w:240, h:240, label:'main',  pad:0 },
+  stamp: { w:370, h:320, label:'stamp', pad:10 },
+  tab:   { w:96,  h:74,  label:'tab',   pad:0 },
+};
+const REMOVEBG_MAX_DIM = 480; // 0.25メガピクセル(≈500x500)の無料枠に収まるよう安全マージンを取った上限
+
+let files = []; // {id, file, url}
+
+const dropEl = document.getElementById('drop');
+const fileInput = document.getElementById('fileInput');
+const thumbsEl = document.getElementById('thumbs');
+const runBtn = document.getElementById('runBtn');
+const statusEl = document.getElementById('status');
+const bgToggle = document.getElementById('bgToggle');
+
+dropEl.addEventListener('click', ()=> fileInput.click());
+dropEl.addEventListener('dragover', e=>{ e.preventDefault(); dropEl.classList.add('drag'); });
+dropEl.addEventListener('dragleave', ()=> dropEl.classList.remove('drag'));
+dropEl.addEventListener('drop', e=>{
+  e.preventDefault(); dropEl.classList.remove('drag');
+  handleFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e=> handleFiles(e.target.files));
+
+function handleFiles(list){
+  Array.from(list).forEach(f=>{
+    if(!f.type.startsWith('image/')) return;
+    const id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
+    const url = URL.createObjectURL(f);
+    files.push({ id, file:f, url });
+  });
+  renderThumbs();
+  updateRunBtn();
+}
+
+function removeFile(id){
+  files = files.filter(f=>f.id!==id);
+  renderThumbs();
+  updateRunBtn();
+}
+
+function renderThumbs(){
+  thumbsEl.innerHTML = '';
+  files.forEach(f=>{
+    const div = document.createElement('div');
+    div.className = 'thumb';
+    div.innerHTML = `<img src="${f.url}"><button class="rm">✕</button><div class="name">${f.file.name}</div>`;
+    div.querySelector('.rm').onclick = ()=> removeFile(f.id);
+    thumbsEl.appendChild(div);
+  });
+}
+
+document.querySelectorAll('#padOpts .opt').forEach(opt=>{
+  const cb = opt.querySelector('input');
+  opt.addEventListener('click', ()=>{
+    document.querySelectorAll('#padOpts .opt').forEach(o=>{
+      o.classList.toggle('active', o===opt);
+    });
+    cb.checked = true;
+  });
+});
+function selectedPadColor(){
+  const active = document.querySelector('#padOpts .opt.active');
+  return active ? active.dataset.pad : 'transparent';
+}
+
+document.querySelectorAll('.opts:not(#padOpts) .opt').forEach(opt=>{
+  const cb = opt.querySelector('input');
+  opt.addEventListener('click', e=>{
+    if(e.target.tagName !== 'INPUT'){ cb.checked = !cb.checked; }
+    opt.classList.toggle('active', cb.checked);
+    updateRunBtn();
+  });
+});
+
+function selectedSizes(){
+  return Array.from(document.querySelectorAll('.opts:not(#padOpts) .opt')).filter(o=>o.querySelector('input').checked).map(o=>o.dataset.key);
+}
+
+function updateRunBtn(){
+  const sizes = selectedSizes();
+  if(files.length === 0){
+    runBtn.disabled = true; runBtn.textContent = '画像を追加してください';
+  } else if(sizes.length === 0){
+    runBtn.disabled = true; runBtn.textContent = 'サイズを1つ以上選んでください';
+  } else {
+    runBtn.disabled = false;
+    const bgLabel = bgToggle.checked ? '（背景透過あり）' : '';
+    runBtn.textContent = `${files.length}枚 × ${sizes.length}サイズ を書き出す${bgLabel}`;
+  }
+}
+bgToggle.addEventListener('change', updateRunBtn);
+
+function loadImage(url){
+  return new Promise((res, rej)=>{
+    const img = new Image();
+    img.onload = ()=> res(img);
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+
+// remove.bgの無料枠(0.25MP)に収まるよう縮小してからbase64化
+function downscaleToBase64(img, maxDim){
+  const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+  const w = Math.round(img.width * scale);
+  const h = Math.round(img.height * scale);
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, w, h);
+  const dataUrl = canvas.toDataURL('image/png');
+  return dataUrl.split(',')[1]; // base64部分のみ
+}
+
+// サーバーレス関数(/api/removebg)経由でremove.bgを呼び、透過済み画像のImageを返す
+async function removeBackground(img){
+  const base64 = downscaleToBase64(img, REMOVEBG_MAX_DIM);
+  const res = await fetch('/api/removebg', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageBase64: base64, size: 'preview' }),
+  });
+  if(!res.ok){
+    let msg = `remove.bg処理に失敗しました (HTTP ${res.status})`;
+    try{ const j = await res.json(); if(j.error) msg = j.error; }catch(e){}
+    throw new Error(msg);
+  }
+  const blob = await res.blob();
+  const url = URL.createObjectURL(blob);
+  const outImg = await loadImage(url);
+  return outImg;
+}
+
+// アスペクト比を保って収める（トリミングしない・余白を追加）。余白色は transparent か white
+function renderToCanvas(img, targetW, targetH, innerPad, padColor){
+  const canvas = document.createElement('canvas');
+  canvas.width = targetW; canvas.height = targetH;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0,0,targetW,targetH);
+  if(padColor === 'white'){
+    ctx.fillStyle = '#FFFFFF';
+    ctx.fillRect(0,0,targetW,targetH);
+  }
+
+  const boxW = targetW - innerPad*2;
+  const boxH = targetH - innerPad*2;
+
+  const scale = Math.min(boxW/img.width, boxH/img.height);
+  const drawW = img.width*scale;
+  const drawH = img.height*scale;
+  const dx = (targetW - drawW)/2;
+  const dy = (targetH - drawH)/2;
+
+  ctx.drawImage(img, dx, dy, drawW, drawH);
+  return canvas;
+}
+
+function canvasToBlob(canvas){
+  return new Promise(res=> canvas.toBlob(res, 'image/png'));
+}
+
+function baseName(filename){
+  return filename.replace(/\.[^.]+$/, '');
+}
+
+runBtn.addEventListener('click', async ()=>{
+  const sizes = selectedSizes();
+  if(files.length===0 || sizes.length===0) return;
+
+  if(typeof JSZip === 'undefined'){
+    statusEl.className = 'status err';
+    statusEl.textContent = 'エラー：ZIP作成用ライブラリの読み込みに失敗しました。このファイルをダウンロードしてから、ブラウザで直接開いて再度お試しください。';
+    return;
+  }
+
+  runBtn.disabled = true;
+  statusEl.className = 'status';
+  statusEl.textContent = '処理中…';
+
+  const zip = new JSZip();
+  let count = 0;
+  let failed = 0;
+  const total = files.length * sizes.length;
+  const doBgRemoval = bgToggle.checked;
+
+  try{
+    for(const f of files){
+      let img;
+      try{ img = await loadImage(f.url); }
+      catch(e){ failed += sizes.length; continue; }
+
+      if(doBgRemoval){
+        statusEl.textContent = `背景透過中… (${f.file.name})`;
+        try{
+          img = await removeBackground(img);
+        }catch(e){
+          statusEl.className = 'status err';
+          statusEl.textContent = `${f.file.name}：${e.message}`;
+          failed += sizes.length;
+          continue;
+        }
+      }
+
+      const base = baseName(f.file.name);
+      const padColor = selectedPadColor();
+
+      for(const key of sizes){
+        const s = SIZES[key];
+        const canvas = renderToCanvas(img, s.w, s.h, s.pad, padColor);
+        const blob = await canvasToBlob(canvas);
+        if(!blob){ failed++; continue; }
+        const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
+        zip.file(outName, blob);
+        count++;
+        statusEl.className = 'status';
+        statusEl.textContent = `書き出し中… (${count}/${total})`;
+      }
+    }
+
+    if(count === 0){
+      statusEl.className = 'status err';
+      statusEl.textContent = failed > 0 ? statusEl.textContent : 'エラー：1枚も変換できませんでした。';
+      runBtn.disabled = false;
+      return;
+    }
+
+    const content = await zip.generateAsync({type:'blob'});
+    if(!content || content.size === 0){
+      statusEl.className = 'status err';
+      statusEl.textContent = 'エラー：ZIPの生成に失敗しました（サイズ0）。';
+      runBtn.disabled = false;
+      return;
+    }
+
+    const url = URL.createObjectURL(content);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'line-stamp-images.zip';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(()=> URL.revokeObjectURL(url), 3000);
+
+    statusEl.className = 'status ok';
+    statusEl.textContent = failed > 0
+      ? `完了（${count}枚成功 / ${failed}枚失敗）`
+      : `完了！ ${total}枚をZIPでダウンロードしました（${(content.size/1024).toFixed(0)}KB）`;
+  }catch(err){
+    statusEl.className = 'status err';
+    statusEl.textContent = 'エラーが発生しました：' + err.message;
+  }
+  runBtn.disabled = false;
+});
+
+updateRunBtn();
+</script>
+</body>
+</html>
