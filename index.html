@@ -176,17 +176,30 @@
   </div>
 
   <div class="panel">
-    <h2>2. 背景透過</h2>
-    <p class="sub">remove.bg APIを使って自動で背景を消す（無料枠：月50回・0.25メガピクセルまで）</p>
-    <div class="toggle-row">
-      <div class="meta">
-        <b>背景透過を自動で行う</b>
-        <span>すでに透過済みの画像には不要。白背景などが残っている画像に使用</span>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="bgToggle">
-        <span class="slider"></span>
+    <h2>2. 出力するサイズを選択</h2>
+    <div class="opts">
+      <label class="opt" data-key="stamp">
+        <input type="checkbox">
+        <div class="meta"><b>スタンプ画像</b><span>370×320px（内側10px余白を自動確保）</span></div>
       </label>
+      <label class="opt" data-key="main">
+        <input type="checkbox">
+        <div class="meta"><b>メイン画像</b><span>240×240px</span></div>
+      </label>
+      <label class="opt" data-key="tab">
+        <input type="checkbox">
+        <div class="meta"><b>トークタブ画像</b><span>96×74px</span></div>
+      </label>
+    </div>
+
+    <p class="sub" style="margin-top:16px;">任意サイズ（カバー画像など）。幅と高さをpxで指定。余白は作らず、はみ出た部分は自動でトリミングして枠いっぱいに埋めます</p>
+    <div id="customList"></div>
+    <div class="custom-add">
+      <input type="text" id="customLabel" placeholder="名前（例: cover）" maxlength="20">
+      <input type="number" id="customW" placeholder="幅px" min="1">
+      <span class="x">×</span>
+      <input type="number" id="customH" placeholder="高さpx" min="1">
+      <button id="customAddBtn" type="button">追加</button>
     </div>
   </div>
 
@@ -206,33 +219,17 @@
   </div>
 
   <div class="panel">
-    <h2>4. 出力するサイズを選択</h2>
-    <div class="opts">
-      <label class="opt active" data-key="main">
-        <input type="checkbox" checked>
-        <div class="meta"><b>メイン画像</b><span>240×240px</span></div>
+    <h2>4. 背景透過</h2>
+    <p class="sub">remove.bg APIを使って自動で背景を消す（無料枠：月50回・0.25メガピクセルまで）</p>
+    <div class="toggle-row">
+      <div class="meta">
+        <b>背景透過を自動で行う</b>
+        <span>すでに透過済みの画像には不要。白背景などが残っている画像に使用</span>
+      </div>
+      <label class="switch">
+        <input type="checkbox" id="bgToggle">
+        <span class="slider"></span>
       </label>
-      <label class="opt active" data-key="stamp">
-        <input type="checkbox" checked>
-        <div class="meta"><b>スタンプ画像</b><span>370×320px（内側10px余白を自動確保）</span></div>
-      </label>
-      <label class="opt active" data-key="tab">
-        <input type="checkbox" checked>
-        <div class="meta"><b>トークタブ画像</b><span>96×74px</span></div>
-      </label>
-    </div>
-  </div>
-
-  <div class="panel">
-    <h2>5. 任意サイズ（カバー画像など）</h2>
-    <p class="sub">幅と高さをpxで指定。余白は作らず、はみ出た部分は自動でトリミングして枠いっぱいに埋めます</p>
-    <div id="customList"></div>
-    <div class="custom-add">
-      <input type="text" id="customLabel" placeholder="名前（例: cover）" maxlength="20">
-      <input type="number" id="customW" placeholder="幅px" min="1">
-      <span class="x">×</span>
-      <input type="number" id="customH" placeholder="高さpx" min="1">
-      <button id="customAddBtn" type="button">追加</button>
     </div>
   </div>
 
@@ -352,11 +349,10 @@ function renderThumbs(){
 
 document.querySelectorAll('#padOpts .opt').forEach(opt=>{
   const cb = opt.querySelector('input');
-  opt.addEventListener('click', ()=>{
+  cb.addEventListener('change', ()=>{
     document.querySelectorAll('#padOpts .opt').forEach(o=>{
-      o.classList.toggle('active', o===opt);
+      o.classList.toggle('active', o.querySelector('input').checked);
     });
-    cb.checked = true;
   });
 });
 function selectedPadColor(){
@@ -366,8 +362,7 @@ function selectedPadColor(){
 
 document.querySelectorAll('.opts:not(#padOpts) .opt').forEach(opt=>{
   const cb = opt.querySelector('input');
-  opt.addEventListener('click', e=>{
-    if(e.target.tagName !== 'INPUT'){ cb.checked = !cb.checked; }
+  cb.addEventListener('change', ()=>{
     opt.classList.toggle('active', cb.checked);
     updateRunBtn();
   });
