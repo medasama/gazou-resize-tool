@@ -143,6 +143,10 @@
     background:#fff; border-radius:999px; padding:0.35em 0.7em;
     box-shadow:0 2px 6px rgba(46,58,70,.25);
   }
+  .te-tail{
+    position:absolute; width:0; height:0; pointer-events:none; display:none;
+    filter:drop-shadow(0 2px 2px rgba(46,58,70,.2));
+  }
 
   .te-color-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .te-swatch{
@@ -257,6 +261,7 @@
       <div class="te-preview-container" id="tePreviewContainer">
         <img id="tePreviewImg">
         <div class="te-text-label" id="teTextLabel">文字</div>
+        <div class="te-tail" id="teTail"></div>
       </div>
       <div class="te-field">
         <label>テキスト</label>
@@ -288,6 +293,20 @@
           <button type="button" class="active" data-style="outline">フチどり</button>
           <button type="button" data-style="bubble">吹き出し（白背景）</button>
         </div>
+      </div>
+      <div class="te-field" id="teTailRow" style="display:none;">
+        <label>吹き出しの向き（しっぽの方向）</label>
+        <div class="te-style-toggle" id="teTailToggle">
+          <button type="button" data-tail="none">なし</button>
+          <button type="button" class="active" data-tail="down">↓下</button>
+          <button type="button" data-tail="up">↑上</button>
+          <button type="button" data-tail="left">←左</button>
+          <button type="button" data-tail="right">→右</button>
+        </div>
+      </div>
+      <div class="te-field">
+        <label>横幅の伸縮（縦のサイズは変わりません）</label>
+        <input type="range" id="teStretch" min="70" max="160" value="100">
       </div>
       <div class="te-buttons">
         <button class="off" id="teRemoveBtn">文字を消す</button>
@@ -446,7 +465,7 @@ function handleFiles(list){
     if(!f.type.startsWith('image/')) return;
     const id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
     const url = URL.createObjectURL(f);
-    files.push({ id, file:f, url, textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline' } });
+    files.push({ id, file:f, url, textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 } });
   });
   renderThumbs();
   updateRunBtn();
@@ -648,10 +667,14 @@ const teFontSize = document.getElementById('teFontSize');
 const teColor = document.getElementById('teColor');
 const teOutline = document.getElementById('teOutline');
 const teStyleToggle = document.getElementById('teStyleToggle');
+const teTailRow = document.getElementById('teTailRow');
+const teTailToggle = document.getElementById('teTailToggle');
+const teStretch = document.getElementById('teStretch');
 const teColorRow = document.getElementById('teColorRow');
 const teColorReset = document.getElementById('teColorReset');
 const TE_DEFAULT_COLOR = '#2E3A46';
 let teBgStyle = 'outline';
+let teTailDir = 'down';
 let teCurrentFileId = null;
 let teDragging = false;
 
@@ -660,6 +683,15 @@ teStyleToggle.querySelectorAll('button').forEach(btn=>{
     teBgStyle = btn.dataset.style;
     teStyleToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
     document.getElementById('teOutlineRow').style.display = (teBgStyle==='bubble') ? 'none' : '';
+    teTailRow.style.display = (teBgStyle==='bubble') ? '' : 'none';
+    updateTeLabelStyle();
+  });
+});
+
+teTailToggle.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    teTailDir = btn.dataset.tail;
+    teTailToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
     updateTeLabelStyle();
   });
 });
@@ -672,7 +704,7 @@ function outlineColorFor(hex){
 }
 
 function updateTeLabelStyle(){
-  const cfg = { text: teTextInput.value || '文字', fontPct: +teFontSize.value, color: teColor.value, outline: teOutline.checked };
+  const cfg = { text: teTextInput.value || '文字', fontPct: +teFontSize.value, color: teColor.value, outline: teOutline.checked, stretchPct: +teStretch.value };
   teTextLabel.textContent = cfg.text;
   // プレビュー枠の高さを基準にpxで指定する（書き出し時の (fontPct/100)*画像高さ と同じ考え方）。
   // % 指定は親要素のフォントサイズ基準になってしまい、スライダーを動かしても数pxしか変わらない。
@@ -682,6 +714,7 @@ function updateTeLabelStyle(){
   teTextLabel.style.color = cfg.color;
   teTextLabel.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
   teTextLabel.style.fontWeight = '800';
+  teTextLabel.style.transform = `translate(-50%,-50%) scaleX(${cfg.stretchPct/100})`;
   refreshSwatchActive();
   teTextLabel.classList.toggle('bubble', teBgStyle === 'bubble');
   if(teBgStyle === 'bubble'){
@@ -694,6 +727,51 @@ function updateTeLabelStyle(){
   }else{
     teTextLabel.style.webkitTextStroke = '0px transparent';
   }
+  updateTeTailPosition();
+}
+
+function updateTeTailPosition(){
+  const tail = document.getElementById('teTail');
+  if(teBgStyle !== 'bubble' || teTailDir === 'none'){
+    tail.style.display = 'none';
+    return;
+  }
+  tail.style.display = 'block';
+  // teTextLabel は transform: translate(-50%,-50%) scaleX(..) で中心配置されているので、
+  // 実際の描画サイズ(offsetWidth/Height)を基準にラベル中心からのオフセットで配置する
+  const w = teTextLabel.offsetWidth;
+  const h = teTextLabel.offsetHeight;
+  const stretch = (+teStretch.value)/100;
+  const dispW = w * stretch;
+  const left = teTextLabel.style.left;
+  const top = teTextLabel.style.top;
+  const size = Math.max(8, Math.min(h, dispW) * 0.32);
+
+  tail.style.left = left;
+  tail.style.top = top;
+  tail.style.borderStyle = 'solid';
+
+  if(teTailDir === 'down'){
+    tail.style.marginLeft = -size + 'px';
+    tail.style.marginTop = (h/2 - 1) + 'px';
+    tail.style.borderWidth = `${size}px ${size}px 0 ${size}px`;
+    tail.style.borderColor = '#fff transparent transparent transparent';
+  }else if(teTailDir === 'up'){
+    tail.style.marginLeft = -size + 'px';
+    tail.style.marginTop = -(h/2 - 1 + size) + 'px';
+    tail.style.borderWidth = `0 ${size}px ${size}px ${size}px`;
+    tail.style.borderColor = 'transparent transparent #fff transparent';
+  }else if(teTailDir === 'left'){
+    tail.style.marginLeft = -(dispW/2 - 1 + size) + 'px';
+    tail.style.marginTop = -size + 'px';
+    tail.style.borderWidth = `${size}px ${size}px ${size}px 0`;
+    tail.style.borderColor = 'transparent #fff transparent transparent';
+  }else if(teTailDir === 'right'){
+    tail.style.marginLeft = (dispW/2 - 1) + 'px';
+    tail.style.marginTop = -size + 'px';
+    tail.style.borderWidth = `${size}px 0 ${size}px ${size}px`;
+    tail.style.borderColor = 'transparent transparent transparent #fff';
+  }
 }
 
 function openTextEditor(fileId){
@@ -705,9 +783,13 @@ function openTextEditor(fileId){
   teFontSize.value = f.textCfg.fontPct || 12;
   teColor.value = f.textCfg.color || TE_DEFAULT_COLOR;
   teOutline.checked = f.textCfg.outline !== false;
+  teStretch.value = f.textCfg.stretchPct || 100;
   teBgStyle = f.textCfg.bgStyle || 'outline';
+  teTailDir = f.textCfg.tailDir || 'down';
   teStyleToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.style===teBgStyle));
+  teTailToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.tail===teTailDir));
   document.getElementById('teOutlineRow').style.display = (teBgStyle==='bubble') ? 'none' : '';
+  teTailRow.style.display = (teBgStyle==='bubble') ? '' : 'none';
   teTextLabel.style.left = (f.textCfg.xPct||50) + '%';
   teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
   // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
@@ -715,7 +797,7 @@ function openTextEditor(fileId){
   updateTeLabelStyle();
 }
 
-[teTextInput, teFontSize, teColor, teOutline].forEach(el=>{
+[teTextInput, teFontSize, teColor, teOutline, teStretch].forEach(el=>{
   el.addEventListener('input', updateTeLabelStyle);
 });
 
@@ -757,6 +839,7 @@ teTextLabel.addEventListener('pointermove', e=>{
   const yPct = teClamp(((e.clientY - rect.top) / rect.height) * 100);
   teTextLabel.style.left = xPct + '%';
   teTextLabel.style.top = yPct + '%';
+  updateTeTailPosition();
 });
 teTextLabel.addEventListener('pointerup', ()=>{ teDragging = false; });
 
@@ -786,6 +869,8 @@ document.getElementById('teSaveBtn').addEventListener('click', ()=>{
       color: teColor.value,
       outline: teOutline.checked,
       bgStyle: teBgStyle,
+      tailDir: teTailDir,
+      stretchPct: +teStretch.value,
     };
   }
   teOverlay.style.display = 'none';
@@ -804,6 +889,30 @@ function roundRectPath(ctx, x, y, w, h, r){
   ctx.closePath();
 }
 
+function drawBubbleTail(ctx, x, y, boxLeft, boxTop, boxW, boxH, dir, size){
+  const boxRight = boxLeft + boxW, boxBottom = boxTop + boxH;
+  ctx.beginPath();
+  if(dir === 'down'){
+    ctx.moveTo(x - size, boxBottom - 1);
+    ctx.lineTo(x + size, boxBottom - 1);
+    ctx.lineTo(x, boxBottom - 1 + size);
+  }else if(dir === 'up'){
+    ctx.moveTo(x - size, boxTop + 1);
+    ctx.lineTo(x + size, boxTop + 1);
+    ctx.lineTo(x, boxTop + 1 - size);
+  }else if(dir === 'left'){
+    ctx.moveTo(boxLeft + 1, y - size);
+    ctx.lineTo(boxLeft + 1, y + size);
+    ctx.lineTo(boxLeft + 1 - size, y);
+  }else if(dir === 'right'){
+    ctx.moveTo(boxRight - 1, y - size);
+    ctx.lineTo(boxRight - 1, y + size);
+    ctx.lineTo(boxRight - 1 + size, y);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
+
 function drawTextOnImage(img, cfg){
   return new Promise(resolve=>{
     const canvas = document.createElement('canvas');
@@ -812,33 +921,48 @@ function drawTextOnImage(img, cfg){
     ctx.drawImage(img, 0, 0);
 
     const fontSize = Math.round((cfg.fontPct/100) * img.height);
+    const stretch = (cfg.stretchPct || 100) / 100;
     ctx.font = `800 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     const x = (cfg.xPct/100) * img.width;
     const y = (cfg.yPct/100) * img.height;
+    const textW = ctx.measureText(cfg.text).width;
+    const stretchedW = textW * stretch;
 
     if(cfg.bgStyle === 'bubble'){
       const padX = fontSize*0.55, padY = fontSize*0.32;
-      const textW = ctx.measureText(cfg.text).width;
-      const boxW = textW + padX*2;
+      const boxW = stretchedW + padX*2;
       const boxH = fontSize + padY*2;
+      const boxLeft = x - boxW/2, boxTop = y - boxH/2;
+      const tailSize = boxH * 0.35;
+
+      if(cfg.tailDir && cfg.tailDir !== 'none'){
+        ctx.fillStyle = '#FFFFFF';
+        drawBubbleTail(ctx, x, y, boxLeft, boxTop, boxW, boxH, cfg.tailDir, tailSize);
+      }
       ctx.fillStyle = '#FFFFFF';
       ctx.shadowColor = 'rgba(0,0,0,0.18)';
       ctx.shadowBlur = fontSize*0.15;
-      roundRectPath(ctx, x-boxW/2, y-boxH/2, boxW, boxH, boxH/2);
+      roundRectPath(ctx, boxLeft, boxTop, boxW, boxH, boxH/2);
       ctx.fill();
       ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
-    }else if(cfg.outline){
+    }
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(stretch, 1);
+    if(cfg.bgStyle !== 'bubble' && cfg.outline){
       // 縮小表示でも潰れないよう、やや太めのフチ（フォントサイズの約22%）
-      ctx.lineWidth = Math.max(3, fontSize*0.22);
+      ctx.lineWidth = Math.max(3, fontSize*0.22) / stretch;
       ctx.strokeStyle = outlineColorFor(cfg.color);
       ctx.lineJoin = 'round';
       ctx.miterLimit = 2;
-      ctx.strokeText(cfg.text, x, y);
+      ctx.strokeText(cfg.text, 0, 0);
     }
     ctx.fillStyle = cfg.color;
-    ctx.fillText(cfg.text, x, y);
+    ctx.fillText(cfg.text, 0, 0);
+    ctx.restore();
 
     canvas.toBlob(blob=>{
       const url = URL.createObjectURL(blob);
@@ -873,8 +997,7 @@ runBtn.addEventListener('click', async ()=>{
   statusEl.className = 'status';
   statusEl.textContent = '処理中…';
 
-  const zip = new JSZip();
-  let count = 0;
+  const outputs = []; // {name, blob}
   let failed = 0;
   const total = files.length * totalSizeCount;
   const doBgRemoval = bgToggle.checked;
@@ -911,10 +1034,9 @@ runBtn.addEventListener('click', async ()=>{
         const blob = await canvasToBlob(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
-        zip.file(outName, blob);
-        count++;
+        outputs.push({ name: outName, blob });
         statusEl.className = 'status';
-        statusEl.textContent = `書き出し中… (${count}/${total})`;
+        statusEl.textContent = `書き出し中… (${outputs.length}/${total})`;
       }
 
       for(const c of customSizes){
@@ -922,41 +1044,60 @@ runBtn.addEventListener('click', async ()=>{
         const blob = await canvasToBlob(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${c.label}_${c.w}x${c.h}.png`;
-        zip.file(outName, blob);
-        count++;
+        outputs.push({ name: outName, blob });
         statusEl.className = 'status';
-        statusEl.textContent = `書き出し中… (${count}/${total})`;
+        statusEl.textContent = `書き出し中… (${outputs.length}/${total})`;
       }
     }
 
-    if(count === 0){
+    if(outputs.length === 0){
       statusEl.className = 'status err';
       statusEl.textContent = failed > 0 ? statusEl.textContent : 'エラー：1枚も変換できませんでした。';
       runBtn.disabled = false;
       return;
     }
 
-    const content = await zip.generateAsync({type:'blob'});
-    if(!content || content.size === 0){
-      statusEl.className = 'status err';
-      statusEl.textContent = 'エラー：ZIPの生成に失敗しました（サイズ0）。';
-      runBtn.disabled = false;
-      return;
+    if(outputs.length === 1){
+      // 1枚だけの場合はZIPにせず、PNG単体でダウンロード
+      const { name, blob } = outputs[0];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 3000);
+
+      statusEl.className = 'status ok';
+      statusEl.textContent = failed > 0
+        ? `完了（1枚成功 / ${failed}枚失敗）`
+        : `完了！ ${name} をダウンロードしました（${(blob.size/1024).toFixed(0)}KB）`;
+    }else{
+      const zip = new JSZip();
+      outputs.forEach(o => zip.file(o.name, o.blob));
+      const content = await zip.generateAsync({type:'blob'});
+      if(!content || content.size === 0){
+        statusEl.className = 'status err';
+        statusEl.textContent = 'エラー：ZIPの生成に失敗しました（サイズ0）。';
+        runBtn.disabled = false;
+        return;
+      }
+
+      const url = URL.createObjectURL(content);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'line-stamp-images.zip';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 3000);
+
+      statusEl.className = 'status ok';
+      statusEl.textContent = failed > 0
+        ? `完了（${outputs.length}枚成功 / ${failed}枚失敗）`
+        : `完了！ ${total}枚をZIPでダウンロードしました（${(content.size/1024).toFixed(0)}KB）`;
     }
-
-    const url = URL.createObjectURL(content);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'line-stamp-images.zip';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(()=> URL.revokeObjectURL(url), 3000);
-
-    statusEl.className = 'status ok';
-    statusEl.textContent = failed > 0
-      ? `完了（${count}枚成功 / ${failed}枚失敗）`
-      : `完了！ ${total}枚をZIPでダウンロードしました（${(content.size/1024).toFixed(0)}KB）`;
   }catch(err){
     statusEl.className = 'status err';
     statusEl.textContent = 'エラーが発生しました：' + err.message;
