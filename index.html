@@ -93,6 +93,16 @@
   }
   .thumb .txt.on{ background:var(--gold); }
 
+  .thumbs-bar{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    margin-top:12px; font-size:11.5px; color:var(--ink-soft);
+  }
+  .thumbs-bar button{
+    background:none; border:none; color:var(--ink-soft); text-decoration:underline;
+    cursor:pointer; font-size:11.5px; font-family:inherit; padding:4px;
+  }
+  .thumbs-bar button:hover{ color:var(--pink); }
+
   .te-overlay{
     position:fixed; inset:0; background:rgba(46,58,70,.55); z-index:900;
     display:flex; align-items:center; justify-content:center; padding:16px;
@@ -246,13 +256,17 @@
 
   <div class="panel">
     <h2>1. 画像をアップロード（複数まとめてOK）</h2>
-    <p class="sub">PNG / JPG 対応</p>
+    <p class="sub">PNG / JPG 対応　※追加した画像はこのブラウザに保存され、次に開いたときも残ります</p>
     <div class="drop" id="drop">
       <div style="font-size:26px;">🐟</div>
       <p><strong>クリックして選択</strong>、またはここにドラッグ＆ドロップ</p>
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
     <div class="thumbs" id="thumbs"></div>
+    <div class="thumbs-bar" id="thumbsBar" style="display:none;">
+      <span id="thumbsCount"></span>
+      <button type="button" id="clearAllBtn">アップロードした画像を全部消す</button>
+    </div>
   </div>
 
   <div class="te-overlay" id="teOverlay" style="display:none;">
@@ -450,6 +464,89 @@ const thumbsEl = document.getElementById('thumbs');
 const runBtn = document.getElementById('runBtn');
 const statusEl = document.getElementById('status');
 const bgToggle = document.getElementById('bgToggle');
+const thumbsBar = document.getElementById('thumbsBar');
+const thumbsCount = document.getElementById('thumbsCount');
+const clearAllBtn = document.getElementById('clearAllBtn');
+
+// ── アップロード画像の永続化（IndexedDB） ──
+// 追加した画像（元データ＋文字設定）をこのブラウザに保存し、再訪時に復元する。
+// 画像は端末外には出ない（背景透過ONのときだけ remove.bg に送信されるのは従来どおり）。
+const IDB_NAME = 'gazou-resize-tool';
+const IDB_STORE = 'uploads';
+let idbPromise = null;
+
+function openIdb(){
+  if(idbPromise) return idbPromise;
+  idbPromise = new Promise((resolve, reject)=>{
+    let req;
+    try{ req = indexedDB.open(IDB_NAME, 1); }
+    catch(e){ reject(e); return; }
+    req.onupgradeneeded = ()=>{
+      if(!req.result.objectStoreNames.contains(IDB_STORE)){
+        req.result.createObjectStore(IDB_STORE, { keyPath:'id' });
+      }
+    };
+    req.onsuccess = ()=> resolve(req.result);
+    req.onerror = ()=> reject(req.error);
+  }).catch(err=>{ console.warn('IndexedDB利用不可:', err); return null; });
+  return idbPromise;
+}
+
+function idbTx(mode, fn){
+  return openIdb().then(db=>{
+    if(!db) return null;
+    return new Promise((resolve, reject)=>{
+      const tx = db.transaction(IDB_STORE, mode);
+      const store = tx.objectStore(IDB_STORE);
+      let out;
+      Promise.resolve(fn(store)).then(v=>{ out = v; });
+      tx.oncomplete = ()=> resolve(out);
+      tx.onerror = ()=> reject(tx.error);
+      tx.onabort = ()=> reject(tx.error);
+    }).catch(err=>{ console.warn('IndexedDB操作失敗:', err); return null; });
+  });
+}
+
+// files[] の1要素を保存用レコードに変換
+function toRecord(f){
+  return { id:f.id, name:f.file.name, blob:f.blob, textCfg:f.textCfg, addedAt:f.addedAt || Date.now() };
+}
+function persistFile(f){ return idbTx('readwrite', store=> store.put(toRecord(f))); }
+function unpersistFile(id){ return idbTx('readwrite', store=> store.delete(id)); }
+function unpersistAll(){ return idbTx('readwrite', store=> store.clear()); }
+
+function restoreFiles(){
+  return idbTx('readonly', store=> new Promise(res=>{
+    const r = store.getAll();
+    r.onsuccess = ()=> res(r.result || []);
+    r.onerror = ()=> res([]);
+  })).then(records=>{
+    if(!records || !records.length) return;
+    records.sort((a,b)=> (a.addedAt||0) - (b.addedAt||0));
+    records.forEach(rec=>{
+      if(files.some(f=>f.id===rec.id)) return;
+      const url = URL.createObjectURL(rec.blob);
+      files.push({
+        id: rec.id,
+        file: { name: rec.name },
+        blob: rec.blob,
+        url,
+        addedAt: rec.addedAt,
+        textCfg: Object.assign(
+          { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 },
+          rec.textCfg || {}
+        ),
+      });
+    });
+    renderThumbs();
+    updateRunBtn();
+  });
+}
+
+// ストレージ退避を受けにくくする（対応ブラウザのみ・任意）
+if(navigator.storage && navigator.storage.persist){
+  navigator.storage.persist().catch(()=>{});
+}
 
 dropEl.addEventListener('click', ()=> fileInput.click());
 dropEl.addEventListener('dragover', e=>{ e.preventDefault(); dropEl.classList.add('drag'); });
@@ -465,20 +562,40 @@ function handleFiles(list){
     if(!f.type.startsWith('image/')) return;
     const id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
     const url = URL.createObjectURL(f);
-    files.push({ id, file:f, url, textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 } });
+    const entry = {
+      id, file:f, blob:f, url, addedAt:Date.now(),
+      textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 },
+    };
+    files.push(entry);
+    persistFile(entry);
   });
   renderThumbs();
   updateRunBtn();
 }
 
 function removeFile(id){
+  const f = files.find(x=>x.id===id);
+  if(f && f.url) URL.revokeObjectURL(f.url);
   files = files.filter(f=>f.id!==id);
+  unpersistFile(id);
+  renderThumbs();
+  updateRunBtn();
+}
+
+function clearAllFiles(){
+  files.forEach(f=>{ if(f.url) URL.revokeObjectURL(f.url); });
+  files = [];
+  unpersistAll();
   renderThumbs();
   updateRunBtn();
 }
 
 function renderThumbs(){
   thumbsEl.innerHTML = '';
+  if(thumbsBar){
+    thumbsBar.style.display = files.length ? 'flex' : 'none';
+    if(thumbsCount) thumbsCount.textContent = files.length ? `${files.length}枚を保存中` : '';
+  }
   files.forEach(f=>{
     const div = document.createElement('div');
     div.className = 'thumb';
@@ -850,7 +967,7 @@ document.getElementById('teCancelBtn').addEventListener('click', ()=>{
 
 document.getElementById('teRemoveBtn').addEventListener('click', ()=>{
   const f = files.find(x=>x.id===teCurrentFileId);
-  if(f){ f.textCfg.enabled = false; f.textCfg.text = ''; }
+  if(f){ f.textCfg.enabled = false; f.textCfg.text = ''; persistFile(f); }
   teOverlay.style.display = 'none';
   teCurrentFileId = null;
   renderThumbs();
@@ -872,6 +989,7 @@ document.getElementById('teSaveBtn').addEventListener('click', ()=>{
       tailDir: teTailDir,
       stretchPct: +teStretch.value,
     };
+    persistFile(f);
   }
   teOverlay.style.display = 'none';
   teCurrentFileId = null;
@@ -1105,7 +1223,16 @@ runBtn.addEventListener('click', async ()=>{
   runBtn.disabled = false;
 });
 
+if(clearAllBtn){
+  clearAllBtn.addEventListener('click', ()=>{
+    if(files.length && confirm('アップロードした画像をすべて消します。よろしいですか？')){
+      clearAllFiles();
+    }
+  });
+}
+
 updateRunBtn();
+restoreFiles();
 </script>
 </body>
 </html>
