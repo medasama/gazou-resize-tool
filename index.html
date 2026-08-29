@@ -643,7 +643,11 @@ function outlineColorFor(hex){
 function updateTeLabelStyle(){
   const cfg = { text: teTextInput.value || '文字', fontPct: +teFontSize.value, color: teColor.value, outline: teOutline.checked };
   teTextLabel.textContent = cfg.text;
-  teTextLabel.style.fontSize = cfg.fontPct + '%';
+  // プレビュー枠の高さを基準にpxで指定する（書き出し時の (fontPct/100)*画像高さ と同じ考え方）。
+  // % 指定は親要素のフォントサイズ基準になってしまい、スライダーを動かしても数pxしか変わらない。
+  const baseH = tePreviewContainer.clientHeight || tePreviewContainer.getBoundingClientRect().height || 320;
+  const fontPx = (cfg.fontPct / 100) * baseH;
+  teTextLabel.style.fontSize = fontPx + 'px';
   teTextLabel.style.color = cfg.color;
   teTextLabel.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
   teTextLabel.style.fontWeight = '800';
@@ -652,7 +656,8 @@ function updateTeLabelStyle(){
     teTextLabel.style.webkitTextStroke = '0px transparent';
   }else if(cfg.outline){
     const oc = outlineColorFor(cfg.color);
-    teTextLabel.style.webkitTextStroke = `4px ${oc}`;
+    // 書き出し側の lineWidth = fontSize*0.22 に合わせて縁取りも文字サイズ連動にする
+    teTextLabel.style.webkitTextStroke = `${Math.max(1, fontPx * 0.22)}px ${oc}`;
     teTextLabel.style.paintOrder = 'stroke fill';
   }else{
     teTextLabel.style.webkitTextStroke = '0px transparent';
@@ -673,8 +678,9 @@ function openTextEditor(fileId){
   document.getElementById('teOutlineRow').style.display = (teBgStyle==='bubble') ? 'none' : '';
   teTextLabel.style.left = (f.textCfg.xPct||50) + '%';
   teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
-  updateTeLabelStyle();
+  // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
   teOverlay.style.display = 'flex';
+  updateTeLabelStyle();
 }
 
 [teTextInput, teFontSize, teColor, teOutline].forEach(el=>{
