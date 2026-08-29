@@ -144,6 +144,25 @@
     box-shadow:0 2px 6px rgba(46,58,70,.25);
   }
 
+  .te-color-row{ display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .te-swatch{
+    width:30px; height:30px; border-radius:50%; border:2px solid var(--line);
+    cursor:pointer; padding:0; position:relative; flex:0 0 auto;
+  }
+  .te-swatch.active{ border-color:var(--teal); box-shadow:0 0 0 3px var(--teal-soft); }
+  .te-swatch-custom{
+    display:flex; align-items:center; justify-content:center; overflow:hidden; background:#fff;
+  }
+  .te-swatch-custom input[type="color"]{
+    position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; border:none; padding:0;
+  }
+  .te-swatch-custom span{ font-size:16px; line-height:1; color:var(--ink-soft); font-weight:700; }
+  .te-reset{
+    height:30px; padding:0 12px; border-radius:999px; border:1.5px solid var(--line); background:#fff;
+    cursor:pointer; font-size:12px; color:var(--ink-soft); font-family:'M PLUS Rounded 1c',sans-serif;
+    display:flex; align-items:center; gap:4px; flex:0 0 auto;
+  }
+
   .runbtn{
     width:100%; padding:14px; border-radius:14px; border:none; background:var(--gold); color:#fff;
     font-weight:800; font-size:15px; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
@@ -243,14 +262,23 @@
         <label>テキスト</label>
         <input type="text" id="teTextInput" placeholder="例：お疲れ様です">
       </div>
-      <div class="te-row" style="margin-bottom:12px;">
-        <div class="te-field">
-          <label>文字サイズ</label>
-          <input type="range" id="teFontSize" min="5" max="30" value="12">
-        </div>
-        <div class="te-field" style="flex:0 0 60px;">
-          <label>色</label>
-          <input type="color" id="teColor" value="#2E3A46" style="width:100%; height:38px; border:none; border-radius:8px; padding:0; cursor:pointer;">
+      <div class="te-field" style="margin-bottom:12px;">
+        <label>文字サイズ</label>
+        <input type="range" id="teFontSize" min="5" max="30" value="12">
+      </div>
+      <div class="te-field" style="margin-bottom:12px;">
+        <label>文字の色</label>
+        <div class="te-color-row" id="teColorRow">
+          <button type="button" class="te-swatch" data-color="#2E3A46" style="background:#2E3A46" title="こげ茶（推奨）"></button>
+          <button type="button" class="te-swatch" data-color="#FFFFFF" style="background:#FFFFFF" title="白"></button>
+          <button type="button" class="te-swatch" data-color="#E8A33D" style="background:#E8A33D" title="金"></button>
+          <button type="button" class="te-swatch" data-color="#4E8FA1" style="background:#4E8FA1" title="青緑"></button>
+          <button type="button" class="te-swatch" data-color="#D24B5A" style="background:#D24B5A" title="赤"></button>
+          <label class="te-swatch te-swatch-custom" title="自由に選ぶ">
+            <input type="color" id="teColor" value="#2E3A46">
+            <span>＋</span>
+          </label>
+          <button type="button" class="te-reset" id="teColorReset" title="推奨の色に戻す">↺ 戻す</button>
         </div>
       </div>
       <label class="te-checkbox" id="teOutlineRow"><input type="checkbox" id="teOutline" checked> 縁取り（アウトライン）をつける</label>
@@ -620,6 +648,9 @@ const teFontSize = document.getElementById('teFontSize');
 const teColor = document.getElementById('teColor');
 const teOutline = document.getElementById('teOutline');
 const teStyleToggle = document.getElementById('teStyleToggle');
+const teColorRow = document.getElementById('teColorRow');
+const teColorReset = document.getElementById('teColorReset');
+const TE_DEFAULT_COLOR = '#2E3A46';
 let teBgStyle = 'outline';
 let teCurrentFileId = null;
 let teDragging = false;
@@ -651,6 +682,7 @@ function updateTeLabelStyle(){
   teTextLabel.style.color = cfg.color;
   teTextLabel.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
   teTextLabel.style.fontWeight = '800';
+  refreshSwatchActive();
   teTextLabel.classList.toggle('bubble', teBgStyle === 'bubble');
   if(teBgStyle === 'bubble'){
     teTextLabel.style.webkitTextStroke = '0px transparent';
@@ -671,7 +703,7 @@ function openTextEditor(fileId){
   tePreviewImg.src = f.url;
   teTextInput.value = f.textCfg.text || '';
   teFontSize.value = f.textCfg.fontPct || 12;
-  teColor.value = f.textCfg.color || '#2E3A46';
+  teColor.value = f.textCfg.color || TE_DEFAULT_COLOR;
   teOutline.checked = f.textCfg.outline !== false;
   teBgStyle = f.textCfg.bgStyle || 'outline';
   teStyleToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.style===teBgStyle));
@@ -686,6 +718,31 @@ function openTextEditor(fileId){
 [teTextInput, teFontSize, teColor, teOutline].forEach(el=>{
   el.addEventListener('input', updateTeLabelStyle);
 });
+
+// プリセット色スウォッチ / デフォルトに戻すボタン
+function refreshSwatchActive(){
+  const cur = (teColor.value || '').toLowerCase();
+  let matched = false;
+  teColorRow.querySelectorAll('.te-swatch[data-color]').forEach(sw=>{
+    const on = sw.dataset.color.toLowerCase() === cur;
+    if(on) matched = true;
+    sw.classList.toggle('active', on);
+  });
+  // プリセット以外の色なら「＋（自由に選ぶ）」を選択中表示にし、その色を映す
+  const custom = teColorRow.querySelector('.te-swatch-custom');
+  if(custom){
+    custom.classList.toggle('active', !matched);
+    custom.style.background = matched ? '#fff' : teColor.value;
+  }
+}
+function setTeColor(hex){
+  teColor.value = hex;
+  updateTeLabelStyle();
+}
+teColorRow.querySelectorAll('.te-swatch[data-color]').forEach(sw=>{
+  sw.addEventListener('click', ()=> setTeColor(sw.dataset.color));
+});
+teColorReset.addEventListener('click', ()=> setTeColor(TE_DEFAULT_COLOR));
 
 function teClamp(v){ return Math.max(2, Math.min(98, v)); }
 
