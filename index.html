@@ -86,6 +86,63 @@
     position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
     background:rgba(46,58,70,.65); color:#fff; border:none; cursor:pointer; font-size:11px; line-height:1;
   }
+  .thumb .txt{
+    position:absolute; top:3px; left:3px; padding:2px 7px; border-radius:8px;
+    background:rgba(46,58,70,.55); color:#fff; border:none; cursor:pointer; font-size:10.5px;
+    font-family:'M PLUS Rounded 1c',sans-serif; font-weight:700;
+  }
+  .thumb .txt.on{ background:var(--gold); }
+
+  .te-overlay{
+    position:fixed; inset:0; background:rgba(46,58,70,.55); z-index:900;
+    display:flex; align-items:center; justify-content:center; padding:16px;
+  }
+  .te-box{
+    background:var(--card); border-radius:18px; padding:18px; max-width:420px; width:100%;
+    max-height:92vh; overflow-y:auto;
+  }
+  .te-box h3{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:15px; margin:0 0 12px; }
+  .te-preview-container{
+    position:relative; width:100%; aspect-ratio:1/1; background:
+      repeating-conic-gradient(#EEE 0% 25%, #FAFAFA 0% 50%) 50% / 16px 16px;
+    border-radius:12px; overflow:hidden; border:1px solid var(--line); margin-bottom:14px;
+    touch-action:none;
+  }
+  .te-preview-container img{ width:100%; height:100%; object-fit:contain; position:absolute; inset:0; pointer-events:none; }
+  .te-text-label{
+    position:absolute; transform:translate(-50%,-50%); cursor:grab; white-space:nowrap;
+    user-select:none; padding:2px 4px;
+  }
+  .te-text-label:active{ cursor:grabbing; }
+  .te-field{ margin-bottom:12px; }
+  .te-field label{ display:block; font-size:12px; color:var(--ink-soft); margin-bottom:5px; }
+  .te-field input[type="text"]{
+    width:100%; padding:9px 12px; border-radius:10px; border:1px solid var(--line); font-size:14px; font-family:inherit;
+  }
+  .te-field input[type="range"]{ width:100%; accent-color:var(--teal); }
+  .te-row{ display:flex; align-items:center; gap:14px; }
+  .te-row .te-field{ flex:1; margin-bottom:0; }
+  .te-checkbox{ display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:14px; }
+  .te-buttons{ display:flex; gap:10px; margin-top:6px; }
+  .te-buttons button{
+    flex:1; padding:11px; border-radius:12px; border:none; font-weight:700; font-size:13.5px; cursor:pointer;
+    font-family:'M PLUS Rounded 1c',sans-serif;
+  }
+  .te-buttons .save{ background:var(--gold); color:#fff; }
+  .te-buttons .cancel{ background:var(--teal-soft); color:var(--ink); }
+  .te-buttons .off{ background:#F0DEDE; color:var(--pink); }
+
+  .te-style-toggle{ display:flex; gap:8px; }
+  .te-style-toggle button{
+    flex:1; padding:9px; border-radius:10px; border:1.5px solid var(--line); background:#fff;
+    font-size:12.5px; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif; color:var(--ink-soft);
+  }
+  .te-style-toggle button.active{ border-color:var(--teal); background:var(--teal-soft); color:var(--ink); font-weight:700; }
+
+  .te-text-label.bubble{
+    background:#fff; border-radius:999px; padding:0.35em 0.7em;
+    box-shadow:0 2px 6px rgba(46,58,70,.25);
+  }
 
   .runbtn{
     width:100%; padding:14px; border-radius:14px; border:none; background:var(--gold); color:#fff;
@@ -173,6 +230,43 @@
     </div>
     <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
     <div class="thumbs" id="thumbs"></div>
+  </div>
+
+  <div class="te-overlay" id="teOverlay" style="display:none;">
+    <div class="te-box">
+      <h3>文字を追加</h3>
+      <div class="te-preview-container" id="tePreviewContainer">
+        <img id="tePreviewImg">
+        <div class="te-text-label" id="teTextLabel">文字</div>
+      </div>
+      <div class="te-field">
+        <label>テキスト</label>
+        <input type="text" id="teTextInput" placeholder="例：お疲れ様です">
+      </div>
+      <div class="te-row" style="margin-bottom:12px;">
+        <div class="te-field">
+          <label>文字サイズ</label>
+          <input type="range" id="teFontSize" min="5" max="30" value="12">
+        </div>
+        <div class="te-field" style="flex:0 0 60px;">
+          <label>色</label>
+          <input type="color" id="teColor" value="#2E3A46" style="width:100%; height:38px; border:none; border-radius:8px; padding:0; cursor:pointer;">
+        </div>
+      </div>
+      <label class="te-checkbox" id="teOutlineRow"><input type="checkbox" id="teOutline" checked> 縁取り（アウトライン）をつける</label>
+      <div class="te-field">
+        <label>背景スタイル</label>
+        <div class="te-style-toggle" id="teStyleToggle">
+          <button type="button" class="active" data-style="outline">フチどり</button>
+          <button type="button" data-style="bubble">吹き出し（白背景）</button>
+        </div>
+      </div>
+      <div class="te-buttons">
+        <button class="off" id="teRemoveBtn">文字を消す</button>
+        <button class="cancel" id="teCancelBtn">キャンセル</button>
+        <button class="save" id="teSaveBtn">保存</button>
+      </div>
+    </div>
   </div>
 
   <div class="panel">
@@ -324,7 +418,7 @@ function handleFiles(list){
     if(!f.type.startsWith('image/')) return;
     const id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
     const url = URL.createObjectURL(f);
-    files.push({ id, file:f, url });
+    files.push({ id, file:f, url, textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline' } });
   });
   renderThumbs();
   updateRunBtn();
@@ -341,8 +435,12 @@ function renderThumbs(){
   files.forEach(f=>{
     const div = document.createElement('div');
     div.className = 'thumb';
-    div.innerHTML = `<img src="${f.url}"><button class="rm">✕</button><div class="name">${f.file.name}</div>`;
+    const hasText = f.textCfg.enabled && f.textCfg.text.trim();
+    div.innerHTML = `<img src="${f.url}"><button class="rm">✕</button>`
+      + `<button class="txt${hasText?' on':''}">Aa</button>`
+      + `<div class="name">${f.file.name}</div>`;
     div.querySelector('.rm').onclick = ()=> removeFile(f.id);
+    div.querySelector('.txt').onclick = ()=> openTextEditor(f.id);
     thumbsEl.appendChild(div);
   });
 }
@@ -512,6 +610,183 @@ function renderToCanvasCover(img, targetW, targetH){
   return canvas;
 }
 
+// ── 文字追加エディタ ──
+const teOverlay = document.getElementById('teOverlay');
+const tePreviewContainer = document.getElementById('tePreviewContainer');
+const tePreviewImg = document.getElementById('tePreviewImg');
+const teTextLabel = document.getElementById('teTextLabel');
+const teTextInput = document.getElementById('teTextInput');
+const teFontSize = document.getElementById('teFontSize');
+const teColor = document.getElementById('teColor');
+const teOutline = document.getElementById('teOutline');
+const teStyleToggle = document.getElementById('teStyleToggle');
+let teBgStyle = 'outline';
+let teCurrentFileId = null;
+let teDragging = false;
+
+teStyleToggle.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    teBgStyle = btn.dataset.style;
+    teStyleToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
+    document.getElementById('teOutlineRow').style.display = (teBgStyle==='bubble') ? 'none' : '';
+    updateTeLabelStyle();
+  });
+});
+
+function outlineColorFor(hex){
+  const c = hex.replace('#','');
+  const r = parseInt(c.substr(0,2),16), g = parseInt(c.substr(2,2),16), b = parseInt(c.substr(4,2),16);
+  const luminance = (0.299*r + 0.587*g + 0.114*b) / 255;
+  return luminance > 0.6 ? '#000000' : '#FFFFFF';
+}
+
+function updateTeLabelStyle(){
+  const cfg = { text: teTextInput.value || '文字', fontPct: +teFontSize.value, color: teColor.value, outline: teOutline.checked };
+  teTextLabel.textContent = cfg.text;
+  teTextLabel.style.fontSize = cfg.fontPct + '%';
+  teTextLabel.style.color = cfg.color;
+  teTextLabel.style.fontFamily = "'M PLUS Rounded 1c', sans-serif";
+  teTextLabel.style.fontWeight = '800';
+  teTextLabel.classList.toggle('bubble', teBgStyle === 'bubble');
+  if(teBgStyle === 'bubble'){
+    teTextLabel.style.webkitTextStroke = '0px transparent';
+  }else if(cfg.outline){
+    const oc = outlineColorFor(cfg.color);
+    teTextLabel.style.webkitTextStroke = `4px ${oc}`;
+    teTextLabel.style.paintOrder = 'stroke fill';
+  }else{
+    teTextLabel.style.webkitTextStroke = '0px transparent';
+  }
+}
+
+function openTextEditor(fileId){
+  const f = files.find(x=>x.id===fileId);
+  if(!f) return;
+  teCurrentFileId = fileId;
+  tePreviewImg.src = f.url;
+  teTextInput.value = f.textCfg.text || '';
+  teFontSize.value = f.textCfg.fontPct || 12;
+  teColor.value = f.textCfg.color || '#2E3A46';
+  teOutline.checked = f.textCfg.outline !== false;
+  teBgStyle = f.textCfg.bgStyle || 'outline';
+  teStyleToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.style===teBgStyle));
+  document.getElementById('teOutlineRow').style.display = (teBgStyle==='bubble') ? 'none' : '';
+  teTextLabel.style.left = (f.textCfg.xPct||50) + '%';
+  teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
+  updateTeLabelStyle();
+  teOverlay.style.display = 'flex';
+}
+
+[teTextInput, teFontSize, teColor, teOutline].forEach(el=>{
+  el.addEventListener('input', updateTeLabelStyle);
+});
+
+function teClamp(v){ return Math.max(2, Math.min(98, v)); }
+
+teTextLabel.addEventListener('pointerdown', e=>{
+  teDragging = true;
+  teTextLabel.setPointerCapture(e.pointerId);
+});
+teTextLabel.addEventListener('pointermove', e=>{
+  if(!teDragging) return;
+  const rect = tePreviewContainer.getBoundingClientRect();
+  const xPct = teClamp(((e.clientX - rect.left) / rect.width) * 100);
+  const yPct = teClamp(((e.clientY - rect.top) / rect.height) * 100);
+  teTextLabel.style.left = xPct + '%';
+  teTextLabel.style.top = yPct + '%';
+});
+teTextLabel.addEventListener('pointerup', ()=>{ teDragging = false; });
+
+document.getElementById('teCancelBtn').addEventListener('click', ()=>{
+  teOverlay.style.display = 'none';
+  teCurrentFileId = null;
+});
+
+document.getElementById('teRemoveBtn').addEventListener('click', ()=>{
+  const f = files.find(x=>x.id===teCurrentFileId);
+  if(f){ f.textCfg.enabled = false; f.textCfg.text = ''; }
+  teOverlay.style.display = 'none';
+  teCurrentFileId = null;
+  renderThumbs();
+});
+
+document.getElementById('teSaveBtn').addEventListener('click', ()=>{
+  const f = files.find(x=>x.id===teCurrentFileId);
+  if(f){
+    const xPct = parseFloat(teTextLabel.style.left) || 50;
+    const yPct = parseFloat(teTextLabel.style.top) || 85;
+    f.textCfg = {
+      enabled: !!teTextInput.value.trim(),
+      text: teTextInput.value,
+      xPct, yPct,
+      fontPct: +teFontSize.value,
+      color: teColor.value,
+      outline: teOutline.checked,
+      bgStyle: teBgStyle,
+    };
+  }
+  teOverlay.style.display = 'none';
+  teCurrentFileId = null;
+  renderThumbs();
+});
+
+// 元画像(ネイティブ解像度)に文字を描き込んだ新しいImageを返す
+function roundRectPath(ctx, x, y, w, h, r){
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.arcTo(x+w, y, x+w, y+h, r);
+  ctx.arcTo(x+w, y+h, x, y+h, r);
+  ctx.arcTo(x, y+h, x, y, r);
+  ctx.arcTo(x, y, x+w, y, r);
+  ctx.closePath();
+}
+
+function drawTextOnImage(img, cfg){
+  return new Promise(resolve=>{
+    const canvas = document.createElement('canvas');
+    canvas.width = img.width; canvas.height = img.height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0);
+
+    const fontSize = Math.round((cfg.fontPct/100) * img.height);
+    ctx.font = `800 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    const x = (cfg.xPct/100) * img.width;
+    const y = (cfg.yPct/100) * img.height;
+
+    if(cfg.bgStyle === 'bubble'){
+      const padX = fontSize*0.55, padY = fontSize*0.32;
+      const textW = ctx.measureText(cfg.text).width;
+      const boxW = textW + padX*2;
+      const boxH = fontSize + padY*2;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.shadowColor = 'rgba(0,0,0,0.18)';
+      ctx.shadowBlur = fontSize*0.15;
+      roundRectPath(ctx, x-boxW/2, y-boxH/2, boxW, boxH, boxH/2);
+      ctx.fill();
+      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+    }else if(cfg.outline){
+      // 縮小表示でも潰れないよう、やや太めのフチ（フォントサイズの約22%）
+      ctx.lineWidth = Math.max(3, fontSize*0.22);
+      ctx.strokeStyle = outlineColorFor(cfg.color);
+      ctx.lineJoin = 'round';
+      ctx.miterLimit = 2;
+      ctx.strokeText(cfg.text, x, y);
+    }
+    ctx.fillStyle = cfg.color;
+    ctx.fillText(cfg.text, x, y);
+
+    canvas.toBlob(blob=>{
+      const url = URL.createObjectURL(blob);
+      const outImg = new Image();
+      outImg.onload = ()=> resolve(outImg);
+      outImg.src = url;
+    }, 'image/png');
+  });
+}
+
+
 function canvasToBlob(canvas){
   return new Promise(res=> canvas.toBlob(res, 'image/png'));
 }
@@ -557,6 +832,11 @@ runBtn.addEventListener('click', async ()=>{
           failed += totalSizeCount;
           continue;
         }
+      }
+
+      if(f.textCfg && f.textCfg.enabled && f.textCfg.text.trim()){
+        statusEl.textContent = `文字を描画中… (${f.file.name})`;
+        img = await drawTextOnImage(img, f.textCfg);
       }
 
       const base = baseName(f.file.name);
