@@ -116,14 +116,25 @@
     display:flex; align-items:center; justify-content:center; padding:16px;
   }
   .te-box{
-    background:var(--card); border-radius:18px; padding:18px; max-width:420px; width:100%;
+    background:var(--card); border-radius:18px; padding:0 18px 18px; max-width:420px; width:100%;
     max-height:92vh; overflow-y:auto;
   }
-  .te-box h3{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:15px; margin:0 0 12px; }
+  /* プレビューは下の設定をスクロールしても常に見えるよう上部に固定する */
+  .te-head{
+    position:sticky; top:0; z-index:3; background:var(--card);
+    padding:16px 0 12px; margin-bottom:2px;
+    box-shadow:0 8px 8px -6px rgba(46,58,70,.12);
+  }
+  /* 設定側にスクロールしたらプレビューを小さくして、画像も設定も見える状態を保つ */
+  .te-box.scrolled .te-preview-container{ max-height:min(24vh, 150px); }
+  .te-box.scrolled .te-head h3{ display:none; }
+  .te-box h3{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:15px; margin:0 0 10px; }
   .te-preview-container{
-    position:relative; width:100%; aspect-ratio:1/1; background:
+    position:relative; width:100%; aspect-ratio:1/1; margin:0 auto;
+    max-height:min(46vh, 360px);
+    background:
       repeating-conic-gradient(#EEE 0% 25%, #FAFAFA 0% 50%) 50% / 16px 16px;
-    border-radius:12px; overflow:hidden; border:1px solid var(--line); margin-bottom:14px;
+    border-radius:12px; overflow:hidden; border:1px solid var(--line);
     touch-action:none;
   }
   .te-preview-container img{ width:100%; height:100%; object-fit:contain; position:absolute; inset:0; pointer-events:none; }
@@ -280,11 +291,13 @@
 
   <div class="te-overlay" id="teOverlay" style="display:none;">
     <div class="te-box">
-      <h3>文字を追加</h3>
-      <div class="te-preview-container" id="tePreviewContainer">
-        <img id="tePreviewImg">
-        <div class="te-text-label" id="teTextLabel">文字</div>
-        <div class="te-tail" id="teTail"></div>
+      <div class="te-head">
+        <h3>文字を追加</h3>
+        <div class="te-preview-container" id="tePreviewContainer">
+          <img id="tePreviewImg">
+          <div class="te-text-label" id="teTextLabel">文字</div>
+          <div class="te-tail" id="teTail"></div>
+        </div>
       </div>
       <div class="te-field">
         <label>テキスト</label>
@@ -832,6 +845,7 @@ function renderToCanvasCover(img, targetW, targetH){
 
 // ── 文字追加エディタ ──
 const teOverlay = document.getElementById('teOverlay');
+const teBox = teOverlay.querySelector('.te-box');
 const tePreviewContainer = document.getElementById('tePreviewContainer');
 const tePreviewImg = document.getElementById('tePreviewImg');
 const teTextLabel = document.getElementById('teTextLabel');
@@ -967,8 +981,19 @@ function openTextEditor(fileId){
   teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
   // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
   teOverlay.style.display = 'flex';
+  teBox.scrollTop = 0;
+  teBox.classList.remove('scrolled');
   updateTeLabelStyle();
 }
+
+// 設定側にスクロールしたらプレビューをコンパクト表示にする
+teBox.addEventListener('scroll', ()=>{
+  const scrolled = teBox.scrollTop > 8;
+  if(teBox.classList.contains('scrolled') !== scrolled){
+    teBox.classList.toggle('scrolled', scrolled);
+    updateTeLabelStyle();
+  }
+});
 
 [teTextInput, teFontSize, teColor, teOutline, teStretch].forEach(el=>{
   el.addEventListener('input', updateTeLabelStyle);
