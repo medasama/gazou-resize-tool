@@ -2,6 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 <title>スタンプ画像ツール</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
@@ -117,21 +118,19 @@
   }
   .te-box{
     background:var(--card); border-radius:18px; padding:0 18px 18px; max-width:420px; width:100%;
-    max-height:92vh; overflow-y:auto;
+    max-height:88vh; overflow-y:auto; display:flex; flex-direction:column;
   }
   /* プレビューは下の設定をスクロールしても常に見えるよう上部に固定する */
   .te-head{
     position:sticky; top:0; z-index:3; background:var(--card);
     padding:16px 0 12px; margin-bottom:2px;
     box-shadow:0 8px 8px -6px rgba(46,58,70,.12);
+    flex-shrink:0;
   }
-  /* 設定側にスクロールしたらプレビューを小さくして、画像も設定も見える状態を保つ */
-  .te-box.scrolled .te-preview-container{ max-height:min(24vh, 150px); }
-  .te-box.scrolled .te-head h3{ display:none; }
   .te-box h3{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:15px; margin:0 0 10px; }
   .te-preview-container{
     position:relative; width:100%; aspect-ratio:1/1; margin:0 auto;
-    max-height:min(46vh, 360px);
+    max-height:min(38vh, 300px);
     background:
       repeating-conic-gradient(#EEE 0% 25%, #FAFAFA 0% 50%) 50% / 16px 16px;
     border-radius:12px; overflow:hidden; border:1px solid var(--line);
@@ -152,7 +151,11 @@
   .te-row{ display:flex; align-items:center; gap:14px; }
   .te-row .te-field{ flex:1; margin-bottom:0; }
   .te-checkbox{ display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:14px; }
-  .te-buttons{ display:flex; gap:10px; margin-top:6px; }
+  .te-buttons{
+    display:flex; gap:10px; margin-top:6px;
+    position:sticky; bottom:0; background:var(--card); padding:10px 0 2px; flex-shrink:0;
+    box-shadow:0 -6px 8px -6px rgba(46,58,70,.12);
+  }
   .te-buttons button{
     flex:1; padding:11px; border-radius:12px; border:none; font-weight:700; font-size:13.5px; cursor:pointer;
     font-family:'M PLUS Rounded 1c',sans-serif;
@@ -982,18 +985,8 @@ function openTextEditor(fileId){
   // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
   teOverlay.style.display = 'flex';
   teBox.scrollTop = 0;
-  teBox.classList.remove('scrolled');
   updateTeLabelStyle();
 }
-
-// 設定側にスクロールしたらプレビューをコンパクト表示にする
-teBox.addEventListener('scroll', ()=>{
-  const scrolled = teBox.scrollTop > 8;
-  if(teBox.classList.contains('scrolled') !== scrolled){
-    teBox.classList.toggle('scrolled', scrolled);
-    updateTeLabelStyle();
-  }
-});
 
 [teTextInput, teFontSize, teColor, teOutline, teStretch].forEach(el=>{
   el.addEventListener('input', updateTeLabelStyle);
