@@ -5,6 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>スタンプ画像ツール</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pako/2.1.0/pako.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/upng-js/2.1.0/UPNG.js"></script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&family=Zen+Kaku+Gothic+New:wght@400;500;700&display=swap');
 
@@ -82,6 +84,7 @@
   .thumb .name{
     position:absolute; bottom:0; left:0; right:0; font-size:9.5px; text-align:center;
     background:rgba(46,58,70,.6); color:#fff; padding:2px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    pointer-events:none;
   }
   .thumb .rm{
     position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
@@ -93,6 +96,14 @@
     font-family:'M PLUS Rounded 1c',sans-serif; font-weight:700;
   }
   .thumb .txt.on{ background:var(--gold); }
+  .thumb.unselected{ opacity:0.35; }
+  .thumb .sel{
+    position:absolute; bottom:3px; right:3px; width:20px; height:20px;
+    display:flex; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.85); border-radius:5px; cursor:pointer;
+    z-index:2; pointer-events:auto;
+  }
+  .thumb .sel input{ width:15px; height:15px; accent-color:var(--gold); cursor:pointer; }
 
   .thumbs-bar{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -288,6 +299,8 @@
     <div class="thumbs" id="thumbs"></div>
     <div class="thumbs-bar" id="thumbsBar" style="display:none;">
       <span id="thumbsCount"></span>
+      <button type="button" id="selectAllBtn">全て選択</button>
+      <button type="button" id="deselectAllBtn">全て解除</button>
       <button type="button" id="clearAllBtn">アップロードした画像を全部消す</button>
     </div>
   </div>
@@ -296,6 +309,7 @@
     <div class="te-box">
       <div class="te-head">
         <h3>文字を追加</h3>
+        <p class="sub" id="tePreviewLabel" style="margin:-6px 0 8px;"></p>
         <div class="te-preview-container" id="tePreviewContainer">
           <img id="tePreviewImg">
           <div class="te-text-label" id="teTextLabel">文字</div>
@@ -346,6 +360,10 @@
       <div class="te-field">
         <label>横幅の伸縮（縦のサイズは変わりません）</label>
         <input type="range" id="teStretch" min="70" max="160" value="100">
+      </div>
+      <div class="te-buttons" style="margin-bottom:8px;">
+        <button class="cancel" id="teDownloadBtn">この画像を保存</button>
+        <button class="cancel" id="teCopyBtn">コピー</button>
       </div>
       <div class="te-buttons">
         <button class="off" id="teRemoveBtn">文字を消す</button>
@@ -400,6 +418,12 @@
         <input type="radio" name="pad">
         <div class="meta"><b>白</b><span>背景透過をしない場合など</span></div>
       </label>
+    </div>
+    <div class="te-field" style="margin-top:14px;">
+      <label>キャラクターの大きさ（ズーム）</label>
+      <input type="range" id="sizeZoom" min="100" max="150" value="100">
+      <span id="sizeZoomVal" style="font-size:11.5px; color:var(--ink-soft);">100%（そのまま・切れる心配なし）</span>
+      <p class="sub" style="margin-top:6px;">元画像に余白が多く含まれていてキャラクターが小さく見える場合、少し拡大して枠に近づけられます。上げすぎると端が切れることがあります</p>
     </div>
   </div>
 
@@ -562,6 +586,7 @@ function restoreFiles(){
         blob: rec.blob,
         url,
         addedAt: rec.addedAt,
+        selected: true,
         textCfg: Object.assign(
           { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 },
           rec.textCfg || {}
@@ -630,7 +655,7 @@ function handleFiles(list){
     const id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
     const url = URL.createObjectURL(f);
     const entry = {
-      id, file:f, blob:f, url, addedAt:Date.now(),
+      id, file:f, blob:f, url, addedAt:Date.now(), selected:true,
       textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 },
     };
     files.push(entry);
@@ -671,19 +696,42 @@ function renderThumbs(){
   thumbsEl.innerHTML = '';
   if(thumbsBar){
     thumbsBar.style.display = files.length ? 'flex' : 'none';
-    if(thumbsCount) thumbsCount.textContent = files.length ? `${files.length}枚を保存中` : '';
+    if(thumbsCount){
+      const selCount = files.filter(f=>f.selected).length;
+      thumbsCount.textContent = files.length ? `${files.length}枚中 ${selCount}枚を選択中` : '';
+    }
   }
   files.forEach(f=>{
     const div = document.createElement('div');
-    div.className = 'thumb';
+    div.className = 'thumb' + (f.selected===false ? ' unselected' : '');
     const hasText = f.textCfg.enabled && f.textCfg.text.trim();
     div.innerHTML = `<img src="${f.url}"><button class="rm">✕</button>`
       + `<button class="txt${hasText?' on':''}">Aa</button>`
+      + `<label class="sel"><input type="checkbox" ${f.selected!==false?'checked':''}></label>`
       + `<div class="name">${f.file.name}</div>`;
     div.querySelector('.rm').onclick = ()=> removeFile(f.id);
     div.querySelector('.txt').onclick = ()=> openTextEditor(f.id);
+    div.querySelector('.sel input').addEventListener('change', e=>{
+      f.selected = e.target.checked;
+      div.classList.toggle('unselected', !f.selected);
+      updateThumbsCount();
+      updateRunBtn();
+    });
     thumbsEl.appendChild(div);
   });
+}
+
+function updateThumbsCount(){
+  if(thumbsCount && files.length){
+    const selCount = files.filter(f=>f.selected!==false).length;
+    thumbsCount.textContent = `${files.length}枚中 ${selCount}枚を選択中`;
+  }
+}
+
+function setAllSelected(val){
+  files.forEach(f=> f.selected = val);
+  renderThumbs();
+  updateRunBtn();
 }
 
 document.querySelectorAll('#padOpts .opt').forEach(opt=>{
@@ -698,6 +746,14 @@ function selectedPadColor(){
   const active = document.querySelector('#padOpts .opt.active');
   return active ? active.dataset.pad : 'transparent';
 }
+
+const sizeZoom = document.getElementById('sizeZoom');
+const sizeZoomVal = document.getElementById('sizeZoomVal');
+sizeZoom.addEventListener('input', ()=>{
+  const v = +sizeZoom.value;
+  sizeZoomVal.textContent = v===100 ? '100%（そのまま・切れる心配なし）' : `${v}%（少し拡大・端が切れる場合あり）`;
+});
+function selectedZoomPct(){ return +sizeZoom.value; }
 
 document.querySelectorAll('.opts:not(#padOpts) .opt').forEach(opt=>{
   const cb = opt.querySelector('input');
@@ -762,14 +818,17 @@ customAddBtn.addEventListener('click', ()=>{
 function updateRunBtn(){
   const sizes = selectedSizes();
   const totalSizeCount = sizes.length + customSizes.length;
+  const selectedFiles = files.filter(f=>f.selected!==false);
   if(files.length === 0){
     runBtn.disabled = true; runBtn.textContent = '画像を追加してください';
+  } else if(selectedFiles.length === 0){
+    runBtn.disabled = true; runBtn.textContent = '書き出す画像を選んでください';
   } else if(totalSizeCount === 0){
     runBtn.disabled = true; runBtn.textContent = 'サイズを1つ以上選んでください';
   } else {
     runBtn.disabled = false;
     const bgLabel = bgToggle.checked ? '（背景透過あり）' : '';
-    runBtn.textContent = `${files.length}枚 × ${totalSizeCount}サイズ を書き出す${bgLabel}`;
+    runBtn.textContent = `${selectedFiles.length}枚 × ${totalSizeCount}サイズ を書き出す${bgLabel}`;
   }
 }
 bgToggle.addEventListener('change', updateRunBtn);
@@ -820,8 +879,8 @@ async function removeBackground(img){
   return outImg;
 }
 
-// アスペクト比を保って収める（トリミングしない・余白を追加）。余白色は transparent か white
-function renderToCanvas(img, targetW, targetH, innerPad, padColor){
+// アスペクト比を保って収める（枠内に収まる範囲でzoomPctぶん拡大可能）。余白色は transparent か white
+function renderToCanvas(img, targetW, targetH, innerPad, padColor, zoomPct){
   const canvas = document.createElement('canvas');
   canvas.width = targetW; canvas.height = targetH;
   const ctx = canvas.getContext('2d');
@@ -834,7 +893,8 @@ function renderToCanvas(img, targetW, targetH, innerPad, padColor){
   const boxW = targetW - innerPad*2;
   const boxH = targetH - innerPad*2;
 
-  const scale = Math.min(boxW/img.width, boxH/img.height);
+  const zoom = (zoomPct||100)/100;
+  const scale = Math.min(boxW/img.width, boxH/img.height) * zoom;
   const drawW = img.width*scale;
   const drawH = img.height*scale;
   const dx = (targetW - drawW)/2;
@@ -984,6 +1044,34 @@ function updateTeTailPosition(){
   }
 }
 
+function getPreviewTargetSize(){
+  const sizes = selectedSizes();
+  const nameMap = { main:'メイン画像', stamp:'スタンプ画像', tab:'トークタブ画像' };
+  const order = ['stamp','main','tab'];
+  for(const k of order){
+    if(sizes.includes(k)) return { w:SIZES[k].w, h:SIZES[k].h, label:nameMap[k] };
+  }
+  if(customSizes.length){
+    const c = customSizes[0];
+    return { w:c.w, h:c.h, label:c.label };
+  }
+  return null;
+}
+
+function applyPreviewFrame(){
+  const target = getPreviewTargetSize();
+  const label = document.getElementById('tePreviewLabel');
+  if(target){
+    tePreviewContainer.style.aspectRatio = `${target.w} / ${target.h}`;
+    label.textContent = `出力枠プレビュー：${target.label} ${target.w}×${target.h}px`;
+  }else{
+    tePreviewContainer.style.aspectRatio = '1 / 1';
+    label.textContent = '出力サイズが未選択のため、正方形の目安で表示しています';
+  }
+  const zoomPct = (typeof selectedZoomPct === 'function') ? selectedZoomPct() : 100;
+  tePreviewImg.style.transform = `scale(${zoomPct/100})`;
+}
+
 function openTextEditor(fileId){
   const f = files.find(x=>x.id===fileId);
   if(!f) return;
@@ -1002,6 +1090,7 @@ function openTextEditor(fileId){
   teTailRow.style.display = (teBgStyle==='bubble') ? '' : 'none';
   teTextLabel.style.left = (f.textCfg.xPct||50) + '%';
   teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
+  applyPreviewFrame();
   // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
   teOverlay.style.display = 'flex';
   teBox.scrollTop = 0;
@@ -1067,22 +1156,80 @@ document.getElementById('teRemoveBtn').addEventListener('click', ()=>{
   renderThumbs();
 });
 
+function currentTeCfg(){
+  const xPct = parseFloat(teTextLabel.style.left) || 50;
+  const yPct = parseFloat(teTextLabel.style.top) || 85;
+  return {
+    enabled: !!teTextInput.value.trim(),
+    text: teTextInput.value,
+    xPct, yPct,
+    fontPct: +teFontSize.value,
+    color: teColor.value,
+    outline: teOutline.checked,
+    bgStyle: teBgStyle,
+    tailDir: teTailDir,
+    stretchPct: +teStretch.value,
+  };
+}
+
+// 編集中の画像（文字を重ねた状態）を、元の解像度のままPNG Blobにする
+async function renderCurrentEditBlob(){
+  const f = files.find(x=>x.id===teCurrentFileId);
+  if(!f) return null;
+  const img = await loadImage(f.url);
+  const cfg = currentTeCfg();
+  const source = (cfg.enabled) ? await drawTextOnImage(img, cfg) : img;
+  const canvas = document.createElement('canvas');
+  canvas.width = source.width; canvas.height = source.height;
+  canvas.getContext('2d').drawImage(source, 0, 0);
+  return { blob: await canvasToBlob(canvas), name: baseName(f.file.name) + '_edit.png' };
+}
+
+document.getElementById('teDownloadBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('teDownloadBtn');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '書き出し中…';
+  try{
+    const result = await renderCurrentEditBlob();
+    if(result){
+      const url = URL.createObjectURL(result.blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = result.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 3000);
+    }
+  }catch(e){
+    alert('保存に失敗しました：' + e.message);
+  }
+  btn.disabled = false; btn.textContent = orig;
+});
+
+document.getElementById('teCopyBtn').addEventListener('click', async ()=>{
+  const btn = document.getElementById('teCopyBtn');
+  const orig = btn.textContent;
+  if(!navigator.clipboard || !window.ClipboardItem){
+    alert('このブラウザは画像コピーに対応していません。「この画像を保存」をお使いください。');
+    return;
+  }
+  btn.disabled = true; btn.textContent = '処理中…';
+  try{
+    const result = await renderCurrentEditBlob();
+    if(result){
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': result.blob })]);
+      btn.textContent = 'コピーしました！';
+      setTimeout(()=> { btn.textContent = orig; btn.disabled = false; }, 1500);
+      return;
+    }
+  }catch(e){
+    alert('コピーに失敗しました：' + e.message);
+  }
+  btn.disabled = false; btn.textContent = orig;
+});
+
 document.getElementById('teSaveBtn').addEventListener('click', ()=>{
   const f = files.find(x=>x.id===teCurrentFileId);
   if(f){
-    const xPct = parseFloat(teTextLabel.style.left) || 50;
-    const yPct = parseFloat(teTextLabel.style.top) || 85;
-    f.textCfg = {
-      enabled: !!teTextInput.value.trim(),
-      text: teTextInput.value,
-      xPct, yPct,
-      fontPct: +teFontSize.value,
-      color: teColor.value,
-      outline: teOutline.checked,
-      bgStyle: teBgStyle,
-      tailDir: teTailDir,
-      stretchPct: +teStretch.value,
-    };
+    f.textCfg = currentTeCfg();
     persistFile(f);
   }
   teOverlay.style.display = 'none';
@@ -1190,6 +1337,38 @@ function canvasToBlob(canvas){
   return new Promise(res=> canvas.toBlob(res, 'image/png'));
 }
 
+// LINEスタンプは1ファイル1MB以下が必須。通常サイズ（メイン/スタンプ/トークタブ）は
+// 小さいのでほぼ問題にならないが、細かい模様や粒子の多いイラストだと超えることがあるため、
+// 超えた場合のみ UPNG.js で減色（パレット化）して縮小する。見た目に影響しない範囲で優先的に試す。
+const LINE_MAX_BYTES = 1000000; // 余裕を見て1,000,000バイト（≒0.95MB）を上限にする
+
+async function canvasToBlobUnder1MB(canvas){
+  const normalBlob = await canvasToBlob(canvas);
+  if(normalBlob.size <= LINE_MAX_BYTES) return normalBlob;
+  if(typeof UPNG === 'undefined') return normalBlob; // ライブラリが読めない場合は通常のPNGのまま返す
+
+  const ctx = canvas.getContext('2d');
+  const w = canvas.width, h = canvas.height;
+  const imgData = ctx.getImageData(0, 0, w, h);
+  const colorSteps = [256, 192, 128, 96, 64, 48, 32, 16];
+
+  for(const n of colorSteps){
+    try{
+      const buf = UPNG.encode([imgData.data.buffer], w, h, n);
+      if(buf.byteLength <= LINE_MAX_BYTES){
+        return new Blob([buf], { type: 'image/png' });
+      }
+    }catch(e){ break; }
+  }
+  // 最後まで1MBを切れなかった場合は、一番小さくなった時点のものを返す
+  try{
+    const buf = UPNG.encode([imgData.data.buffer], w, h, colorSteps[colorSteps.length-1]);
+    return new Blob([buf], { type: 'image/png' });
+  }catch(e){
+    return normalBlob;
+  }
+}
+
 function baseName(filename){
   return filename.replace(/\.[^.]+$/, '');
 }
@@ -1197,7 +1376,8 @@ function baseName(filename){
 runBtn.addEventListener('click', async ()=>{
   const sizes = selectedSizes();
   const totalSizeCount = sizes.length + customSizes.length;
-  if(files.length===0 || totalSizeCount===0) return;
+  const targetFiles = files.filter(f=>f.selected!==false);
+  if(targetFiles.length===0 || totalSizeCount===0) return;
 
   if(typeof JSZip === 'undefined'){
     statusEl.className = 'status err';
@@ -1211,11 +1391,11 @@ runBtn.addEventListener('click', async ()=>{
 
   const outputs = []; // {name, blob}
   let failed = 0;
-  const total = files.length * totalSizeCount;
+  const total = targetFiles.length * totalSizeCount;
   const doBgRemoval = bgToggle.checked;
 
   try{
-    for(const f of files){
+    for(const f of targetFiles){
       let img;
       try{ img = await loadImage(f.url); }
       catch(e){ failed += totalSizeCount; continue; }
@@ -1239,11 +1419,13 @@ runBtn.addEventListener('click', async ()=>{
 
       const base = baseName(f.file.name);
       const padColor = selectedPadColor();
+      const zoomPct = selectedZoomPct();
 
       for(const key of sizes){
         const s = SIZES[key];
-        const canvas = renderToCanvas(img, s.w, s.h, s.pad, padColor);
-        const blob = await canvasToBlob(canvas);
+        const canvas = renderToCanvas(img, s.w, s.h, s.pad, padColor, zoomPct);
+        // LINEスタンプ用サイズは1MB以下に自動調整
+        const blob = await canvasToBlobUnder1MB(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
         outputs.push({ name: outName, blob });
@@ -1324,6 +1506,11 @@ if(clearAllBtn){
     }
   });
 }
+
+const selectAllBtn = document.getElementById('selectAllBtn');
+const deselectAllBtn = document.getElementById('deselectAllBtn');
+if(selectAllBtn) selectAllBtn.addEventListener('click', ()=> setAllSelected(true));
+if(deselectAllBtn) deselectAllBtn.addEventListener('click', ()=> setAllSelected(false));
 
 updateRunBtn();
 restoreFiles();
