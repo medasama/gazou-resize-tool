@@ -104,6 +104,11 @@
     z-index:2; pointer-events:auto;
   }
   .thumb .sel input{ width:15px; height:15px; accent-color:var(--gold); cursor:pointer; }
+  .thumb .bgdone{
+    position:absolute; bottom:3px; left:3px; width:20px; height:20px; border-radius:5px;
+    background:var(--teal); color:#fff; font-size:10.5px; font-weight:700;
+    display:flex; align-items:center; justify-content:center;
+  }
 
   .thumbs-bar{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -147,6 +152,21 @@
     border-radius:12px; overflow:hidden; border:1px solid var(--line);
     touch-action:none;
   }
+  .te-preview-container.backdrop-light{
+    background: #8DE055; /* LINEのトーク画面に近い明るい背景色 */
+  }
+  .te-preview-container.backdrop-dark{
+    background: #1B1B1B; /* トーク画面ダークモードに近い背景色 */
+  }
+  .te-preview-tools{
+    display:flex; flex-direction:column; gap:8px; margin-top:10px;
+  }
+  .te-bgpreview-btn{
+    padding:9px; border-radius:10px; border:1.5px solid var(--teal); background:#fff; color:var(--teal);
+    font-size:12.5px; font-weight:700; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
+  }
+  .te-bgpreview-btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .te-bgpreview-btn.done{ background:var(--teal-soft); }
   .te-preview-container img{ width:100%; height:100%; object-fit:contain; position:absolute; inset:0; pointer-events:none; }
   .te-text-label{
     position:absolute; transform:translate(-50%,-50%); cursor:grab; white-space:nowrap;
@@ -314,6 +334,14 @@
           <img id="tePreviewImg">
           <div class="te-text-label" id="teTextLabel">文字</div>
           <div class="te-tail" id="teTail"></div>
+        </div>
+        <div class="te-preview-tools">
+          <div class="te-style-toggle" id="teBackdropToggle">
+            <button type="button" class="active" data-backdrop="checker">透明グリッド</button>
+            <button type="button" data-backdrop="light">トーク画面（明）</button>
+            <button type="button" data-backdrop="dark">トーク画面（暗）</button>
+          </div>
+          <button type="button" class="te-bgpreview-btn" id="teBgPreviewBtn">背景透過して確認（remove.bgを使用）</button>
         </div>
       </div>
       <div class="te-field">
@@ -707,6 +735,7 @@ function renderThumbs(){
     const hasText = f.textCfg.enabled && f.textCfg.text.trim();
     div.innerHTML = `<img src="${f.url}"><button class="rm">✕</button>`
       + `<button class="txt${hasText?' on':''}">Aa</button>`
+      + (f.bgRemovedUrl ? `<span class="bgdone" title="背景透過を確認済み">透</span>` : '')
       + `<label class="sel"><input type="checkbox" ${f.selected!==false?'checked':''}></label>`
       + `<div class="name">${f.file.name}</div>`;
     div.querySelector('.rm').onclick = ()=> removeFile(f.id);
@@ -879,6 +908,21 @@ async function removeBackground(img){
   return outImg;
 }
 
+// 背景透過の結果をファイルごとにキャッシュし、プレビューと本番書き出しで使い回す
+// （プレビューで1回だけremove.bgを呼び、書き出し時は再度呼ばずキャッシュを使う＝無料枠の節約）
+async function getBgRemovedImage(f, img){
+  if(f.bgRemovedUrl){
+    return await loadImage(f.bgRemovedUrl);
+  }
+  const outImg = await removeBackground(img);
+  const canvas = document.createElement('canvas');
+  canvas.width = outImg.width; canvas.height = outImg.height;
+  canvas.getContext('2d').drawImage(outImg, 0, 0);
+  const blob = await canvasToBlob(canvas);
+  f.bgRemovedUrl = URL.createObjectURL(blob);
+  return outImg;
+}
+
 // アスペクト比を保って収める（枠内に収まる範囲でzoomPctぶん拡大可能）。余白色は transparent か white
 function renderToCanvas(img, targetW, targetH, innerPad, padColor, zoomPct){
   const canvas = document.createElement('canvas');
@@ -964,6 +1008,39 @@ teTailToggle.querySelectorAll('button').forEach(btn=>{
     teTailToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
     updateTeLabelStyle();
   });
+});
+
+// プレビューの背景（透明グリッド／トーク画面 明るい・暗い）を切り替え、文字の見え方を確認できるようにする
+const teBackdropToggle = document.getElementById('teBackdropToggle');
+teBackdropToggle.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    teBackdropToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
+    tePreviewContainer.classList.remove('backdrop-light','backdrop-dark');
+    if(btn.dataset.backdrop === 'light') tePreviewContainer.classList.add('backdrop-light');
+    if(btn.dataset.backdrop === 'dark') tePreviewContainer.classList.add('backdrop-dark');
+  });
+});
+
+// 実際にremove.bgで背景透過した状態をプレビューで確認する。結果はファイルごとにキャッシュし、
+// 本番の書き出し時にも使い回すので、無料枠を二重に消費しない。
+document.getElementById('teBgPreviewBtn').addEventListener('click', async ()=>{
+  const f = files.find(x=>x.id===teCurrentFileId);
+  if(!f) return;
+  const btn = document.getElementById('teBgPreviewBtn');
+  const orig = btn.textContent;
+  btn.disabled = true; btn.textContent = '処理中…';
+  try{
+    const img = await loadImage(f.url);
+    await getBgRemovedImage(f, img); // f.bgRemovedUrl がキャッシュされる
+    tePreviewImg.src = f.bgRemovedUrl;
+    btn.textContent = '背景透過を確認済み（もう一度実行）';
+    btn.classList.add('done');
+    renderThumbs();
+  }catch(e){
+    alert('背景透過に失敗しました：' + e.message);
+    btn.textContent = orig;
+  }
+  btn.disabled = false;
 });
 
 function outlineColorFor(hex){
@@ -1076,7 +1153,7 @@ function openTextEditor(fileId){
   const f = files.find(x=>x.id===fileId);
   if(!f) return;
   teCurrentFileId = fileId;
-  tePreviewImg.src = f.url;
+  tePreviewImg.src = f.bgRemovedUrl || f.url;
   teTextInput.value = f.textCfg.text || '';
   teFontSize.value = f.textCfg.fontPct || 12;
   teColor.value = f.textCfg.color || TE_DEFAULT_COLOR;
@@ -1091,6 +1168,16 @@ function openTextEditor(fileId){
   teTextLabel.style.left = (f.textCfg.xPct||50) + '%';
   teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
   applyPreviewFrame();
+  // 背景透過ボタンの状態をリセット（キャッシュ済みなら「確認済み」表示にする）
+  const bgBtn = document.getElementById('teBgPreviewBtn');
+  if(f.bgRemovedUrl){
+    bgBtn.textContent = '背景透過を確認済み（もう一度実行）';
+    bgBtn.classList.add('done');
+  }else{
+    bgBtn.textContent = '背景透過して確認（remove.bgを使用）';
+    bgBtn.classList.remove('done');
+  }
+  bgBtn.disabled = false;
   // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
   teOverlay.style.display = 'flex';
   teBox.scrollTop = 0;
@@ -1176,7 +1263,7 @@ function currentTeCfg(){
 async function renderCurrentEditBlob(){
   const f = files.find(x=>x.id===teCurrentFileId);
   if(!f) return null;
-  const img = await loadImage(f.url);
+  const img = await loadImage(f.bgRemovedUrl || f.url);
   const cfg = currentTeCfg();
   const source = (cfg.enabled) ? await drawTextOnImage(img, cfg) : img;
   const canvas = document.createElement('canvas');
@@ -1401,9 +1488,9 @@ runBtn.addEventListener('click', async ()=>{
       catch(e){ failed += totalSizeCount; continue; }
 
       if(doBgRemoval){
-        statusEl.textContent = `背景透過中… (${f.file.name})`;
+        statusEl.textContent = f.bgRemovedUrl ? `背景透過（キャッシュ使用）… (${f.file.name})` : `背景透過中… (${f.file.name})`;
         try{
-          img = await removeBackground(img);
+          img = await getBgRemovedImage(f, img);
         }catch(e){
           statusEl.className = 'status err';
           statusEl.textContent = `${f.file.name}：${e.message}`;
