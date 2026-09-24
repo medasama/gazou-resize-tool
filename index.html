@@ -84,7 +84,6 @@
   .thumb .name{
     position:absolute; bottom:0; left:0; right:0; font-size:9.5px; text-align:center;
     background:rgba(46,58,70,.6); color:#fff; padding:2px 3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
-    pointer-events:none;
   }
   .thumb .rm{
     position:absolute; top:3px; right:3px; width:18px; height:18px; border-radius:50%;
@@ -96,19 +95,17 @@
     font-family:'M PLUS Rounded 1c',sans-serif; font-weight:700;
   }
   .thumb .txt.on{ background:var(--gold); }
-  .thumb.unselected{ opacity:0.35; }
   .thumb .sel{
-    position:absolute; bottom:3px; right:3px; width:20px; height:20px;
-    display:flex; align-items:center; justify-content:center;
-    background:rgba(255,255,255,.85); border-radius:5px; cursor:pointer;
-    z-index:2; pointer-events:auto;
+    position:absolute; top:3px; left:3px; width:20px; height:20px; z-index:2; pointer-events:auto;
+    accent-color:var(--teal); cursor:pointer;
   }
-  .thumb .sel input{ width:15px; height:15px; accent-color:var(--gold); cursor:pointer; }
-  .thumb .bgdone{
-    position:absolute; bottom:3px; left:3px; width:20px; height:20px; border-radius:5px;
-    background:var(--teal); color:#fff; font-size:10.5px; font-weight:700;
-    display:flex; align-items:center; justify-content:center;
+  .thumb .txt{ left:27px; }
+  .thumb .badge{
+    position:absolute; bottom:16px; right:3px; padding:1px 6px; border-radius:7px;
+    background:var(--done); color:#fff; font-size:9px; font-weight:700; z-index:2;
+    font-family:'M PLUS Rounded 1c',sans-serif;
   }
+  .thumb .name{ pointer-events:none; }
 
   .thumbs-bar{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -152,21 +149,6 @@
     border-radius:12px; overflow:hidden; border:1px solid var(--line);
     touch-action:none;
   }
-  .te-preview-container.backdrop-light{
-    background: #8DE055; /* LINEのトーク画面に近い明るい背景色 */
-  }
-  .te-preview-container.backdrop-dark{
-    background: #1B1B1B; /* トーク画面ダークモードに近い背景色 */
-  }
-  .te-preview-tools{
-    display:flex; flex-direction:column; gap:8px; margin-top:10px;
-  }
-  .te-bgpreview-btn{
-    padding:9px; border-radius:10px; border:1.5px solid var(--teal); background:#fff; color:var(--teal);
-    font-size:12.5px; font-weight:700; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
-  }
-  .te-bgpreview-btn:disabled{ opacity:.6; cursor:not-allowed; }
-  .te-bgpreview-btn.done{ background:var(--teal-soft); }
   .te-preview-container img{ width:100%; height:100%; object-fit:contain; position:absolute; inset:0; pointer-events:none; }
   .te-text-label{
     position:absolute; transform:translate(-50%,-50%); cursor:grab; white-space:nowrap;
@@ -184,15 +166,15 @@
   .te-checkbox{ display:flex; align-items:center; gap:8px; font-size:13px; margin-bottom:14px; }
   .te-buttons{
     display:flex; gap:10px; margin-top:6px;
-    position:sticky; bottom:0; background:var(--card); padding:10px 0 2px; flex-shrink:0;
-    box-shadow:0 -6px 8px -6px rgba(46,58,70,.12);
+    background:var(--card); padding:10px 0 2px; flex-shrink:0;
   }
-  .te-buttons button{
+  .te-buttons-top{ display:flex; gap:10px; margin-top:6px; }
+  .te-buttons button, .te-buttons-top button{
     flex:1; padding:11px; border-radius:12px; border:none; font-weight:700; font-size:13.5px; cursor:pointer;
     font-family:'M PLUS Rounded 1c',sans-serif;
   }
   .te-buttons .save{ background:var(--gold); color:#fff; }
-  .te-buttons .cancel{ background:var(--teal-soft); color:var(--ink); }
+  .te-buttons .cancel, .te-buttons-top .cancel{ background:var(--teal-soft); color:var(--ink); }
   .te-buttons .off{ background:#F0DEDE; color:var(--pink); }
 
   .te-style-toggle{ display:flex; gap:8px; }
@@ -201,6 +183,23 @@
     font-size:12.5px; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif; color:var(--ink-soft);
   }
   .te-style-toggle button.active{ border-color:var(--teal); background:var(--teal-soft); color:var(--ink); font-weight:700; }
+
+  .te-preview-container.backdrop-light{ background:#8DE055; } /* LINEのトーク画面に近い明るい背景色 */
+  .te-preview-container.backdrop-dark{ background:#1B1B1B; } /* トーク画面ダークモードに近い背景色 */
+  .te-preview-tools{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .te-bgpreview-btn{
+    width:100%; padding:9px; border-radius:10px; border:1.5px solid var(--teal); background:#fff; color:var(--teal);
+    font-size:12.5px; font-weight:700; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
+  }
+  .te-bgpreview-btn:disabled{ opacity:.6; cursor:not-allowed; }
+  .te-bgpreview-btn.done{ background:var(--teal-soft); }
+
+  .te-section{
+    background:var(--teal-soft); border-radius:14px; padding:14px 14px 4px; margin-bottom:14px;
+  }
+  .te-section h4{
+    font-family:'M PLUS Rounded 1c',sans-serif; font-size:13px; margin:0 0 10px; color:var(--ink);
+  }
 
   .te-text-label.bubble{
     background:#fff; border-radius:999px; padding:0.35em 0.7em;
@@ -319,16 +318,18 @@
     <div class="thumbs" id="thumbs"></div>
     <div class="thumbs-bar" id="thumbsBar" style="display:none;">
       <span id="thumbsCount"></span>
-      <button type="button" id="selectAllBtn">全て選択</button>
-      <button type="button" id="deselectAllBtn">全て解除</button>
-      <button type="button" id="clearAllBtn">アップロードした画像を全部消す</button>
+      <span>
+        <button type="button" id="selAllBtn">全て選択</button>
+        <button type="button" id="selNoneBtn">選択解除</button>
+        <button type="button" id="clearAllBtn">アップロードした画像を全部消す</button>
+      </span>
     </div>
   </div>
 
   <div class="te-overlay" id="teOverlay" style="display:none;">
     <div class="te-box">
       <div class="te-head">
-        <h3>文字を追加</h3>
+        <h3>画像を編集</h3>
         <p class="sub" id="tePreviewLabel" style="margin:-6px 0 8px;"></p>
         <div class="te-preview-container" id="tePreviewContainer">
           <img id="tePreviewImg">
@@ -341,9 +342,38 @@
             <button type="button" data-backdrop="light">トーク画面（明）</button>
             <button type="button" data-backdrop="dark">トーク画面（暗）</button>
           </div>
-          <button type="button" class="te-bgpreview-btn" id="teBgPreviewBtn">背景透過して確認（remove.bgを使用）</button>
         </div>
       </div>
+
+      <div class="te-section">
+        <h4>見た目の調整（この画像だけの設定）</h4>
+        <div class="te-field">
+          <label>キャラクターの大きさ（ズーム）</label>
+          <input type="range" id="teZoom" min="100" max="150" value="100">
+          <span id="teZoomVal" style="font-size:11.5px; color:var(--ink-soft);">100%（そのまま・切れる心配なし）</span>
+        </div>
+        <div class="te-field">
+          <label>余白の色</label>
+          <div class="te-style-toggle" id="tePadToggle">
+            <button type="button" class="active" data-pad="transparent">透明</button>
+            <button type="button" data-pad="white">白</button>
+          </div>
+        </div>
+        <div class="te-field">
+          <div class="toggle-row" style="margin-bottom:0;">
+            <div class="meta">
+              <b>背景透過</b>
+              <span>remove.bgで背景を消す（この画像だけ）</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="teBgToggle">
+              <span class="slider"></span>
+            </label>
+          </div>
+          <button type="button" class="te-bgpreview-btn" id="teBgPreviewBtn" style="margin-top:8px;">背景透過して確認（remove.bgを使用）</button>
+        </div>
+      </div>
+
       <div class="te-field">
         <label>テキスト</label>
         <input type="text" id="teTextInput" placeholder="例：お疲れ様です">
@@ -389,8 +419,8 @@
         <label>横幅の伸縮（縦のサイズは変わりません）</label>
         <input type="range" id="teStretch" min="70" max="160" value="100">
       </div>
-      <div class="te-buttons" style="margin-bottom:8px;">
-        <button class="cancel" id="teDownloadBtn">この画像を保存</button>
+      <div class="te-buttons-top" style="margin-bottom:8px;">
+        <button class="cancel" id="teDownloadBtn">このサイズで保存</button>
         <button class="cancel" id="teCopyBtn">コピー</button>
       </div>
       <div class="te-buttons">
@@ -403,6 +433,7 @@
 
   <div class="panel">
     <h2>2. 出力するサイズを選択</h2>
+    <p class="sub">ここで選んだサイズが、編集画面のプレビュー枠や「このサイズで保存」に使われます</p>
     <div class="opts">
       <label class="opt" data-key="stamp">
         <input type="checkbox">
@@ -435,43 +466,11 @@
   </div>
 
   <div class="panel">
-    <h2>3. 余白の色</h2>
-    <p class="sub">規定サイズに収める際、はみ出た部分に足す余白の色</p>
-    <div class="opts" id="padOpts">
-      <label class="opt active" data-pad="transparent">
-        <input type="radio" name="pad" checked>
-        <div class="meta"><b>透明</b><span>LINEスタンプの標準</span></div>
-      </label>
-      <label class="opt" data-pad="white">
-        <input type="radio" name="pad">
-        <div class="meta"><b>白</b><span>背景透過をしない場合など</span></div>
-      </label>
-    </div>
-    <div class="te-field" style="margin-top:14px;">
-      <label>キャラクターの大きさ（ズーム）</label>
-      <input type="range" id="sizeZoom" min="100" max="150" value="100">
-      <span id="sizeZoomVal" style="font-size:11.5px; color:var(--ink-soft);">100%（そのまま・切れる心配なし）</span>
-      <p class="sub" style="margin-top:6px;">元画像に余白が多く含まれていてキャラクターが小さく見える場合、少し拡大して枠に近づけられます。上げすぎると端が切れることがあります</p>
-    </div>
+    <h2>3. 書き出し</h2>
+    <p class="sub">ズーム・余白の色・背景透過は画像ごとに「Aa」の編集画面で設定します（サムネイルの編集ボタンから）</p>
+    <button class="runbtn" id="runBtn" disabled>画像を追加してください</button>
+    <div class="status" id="status"></div>
   </div>
-
-  <div class="panel">
-    <h2>4. 背景透過</h2>
-    <p class="sub">remove.bg APIを使って自動で背景を消す（無料枠：月50回・0.25メガピクセルまで）</p>
-    <div class="toggle-row">
-      <div class="meta">
-        <b>背景透過を自動で行う</b>
-        <span>すでに透過済みの画像には不要。白背景などが残っている画像に使用</span>
-      </div>
-      <label class="switch">
-        <input type="checkbox" id="bgToggle">
-        <span class="slider"></span>
-      </label>
-    </div>
-  </div>
-
-  <button class="runbtn" id="runBtn" disabled>画像を追加してください</button>
-  <div class="status" id="status"></div>
 </div>
 <footer>リサイズ処理はブラウザ内で完結します。背景透過をONにした場合のみ、画像はremove.bgへ送信されます</footer>
 
@@ -545,10 +544,11 @@ const fileInput = document.getElementById('fileInput');
 const thumbsEl = document.getElementById('thumbs');
 const runBtn = document.getElementById('runBtn');
 const statusEl = document.getElementById('status');
-const bgToggle = document.getElementById('bgToggle');
 const thumbsBar = document.getElementById('thumbsBar');
 const thumbsCount = document.getElementById('thumbsCount');
 const clearAllBtn = document.getElementById('clearAllBtn');
+const selAllBtn = document.getElementById('selAllBtn');
+const selNoneBtn = document.getElementById('selNoneBtn');
 
 // ── アップロード画像の永続化（IndexedDB） ──
 // 追加した画像（元データ＋文字設定）をこのブラウザに保存し、再訪時に復元する。
@@ -590,8 +590,11 @@ function idbTx(mode, fn){
 }
 
 // files[] の1要素を保存用レコードに変換
+const DEFAULT_EDIT_CFG = { zoomPct:100, padColor:'transparent', bgRemoval:false };
+const DEFAULT_TEXT_CFG = { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 };
+
 function toRecord(f){
-  return { id:f.id, name:f.file.name, blob:f.blob, textCfg:f.textCfg, addedAt:f.addedAt || Date.now() };
+  return { id:f.id, name:f.file.name, blob:f.blob, textCfg:f.textCfg, editCfg:f.editCfg, addedAt:f.addedAt || Date.now() };
 }
 function persistFile(f){ return idbTx('readwrite', store=> store.put(toRecord(f))); }
 function unpersistFile(id){ return idbTx('readwrite', store=> store.delete(id)); }
@@ -614,11 +617,10 @@ function restoreFiles(){
         blob: rec.blob,
         url,
         addedAt: rec.addedAt,
+        textCfg: Object.assign({}, DEFAULT_TEXT_CFG, rec.textCfg || {}),
+        editCfg: Object.assign({}, DEFAULT_EDIT_CFG, rec.editCfg || {}),
         selected: true,
-        textCfg: Object.assign(
-          { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 },
-          rec.textCfg || {}
-        ),
+        bgRemovedUrl: null,
       });
     });
     renderThumbs();
@@ -683,8 +685,11 @@ function handleFiles(list){
     const id = Date.now()+'-'+Math.random().toString(36).slice(2,7);
     const url = URL.createObjectURL(f);
     const entry = {
-      id, file:f, blob:f, url, addedAt:Date.now(), selected:true,
-      textCfg: { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 },
+      id, file:f, blob:f, url, addedAt:Date.now(),
+      textCfg: Object.assign({}, DEFAULT_TEXT_CFG),
+      editCfg: Object.assign({}, DEFAULT_EDIT_CFG),
+      selected: true,
+      bgRemovedUrl: null,
     };
     files.push(entry);
     persistFile(entry);
@@ -724,67 +729,31 @@ function renderThumbs(){
   thumbsEl.innerHTML = '';
   if(thumbsBar){
     thumbsBar.style.display = files.length ? 'flex' : 'none';
-    if(thumbsCount){
-      const selCount = files.filter(f=>f.selected).length;
-      thumbsCount.textContent = files.length ? `${files.length}枚中 ${selCount}枚を選択中` : '';
-    }
+    if(thumbsCount) thumbsCount.textContent = files.length ? `${files.length}枚を保存中` : '';
   }
   files.forEach(f=>{
     const div = document.createElement('div');
-    div.className = 'thumb' + (f.selected===false ? ' unselected' : '');
+    div.className = 'thumb';
     const hasText = f.textCfg.enabled && f.textCfg.text.trim();
-    div.innerHTML = `<img src="${f.url}"><button class="rm">✕</button>`
+    const isSelected = f.selected !== false;
+    const hasBgDone = !!f.bgRemovedUrl;
+    div.innerHTML = `<img src="${f.url}">`
+      + `<input type="checkbox" class="sel" ${isSelected?'checked':''} title="書き出し対象">`
+      + `<button class="rm">✕</button>`
       + `<button class="txt${hasText?' on':''}">Aa</button>`
-      + (f.bgRemovedUrl ? `<span class="bgdone" title="背景透過を確認済み">透</span>` : '')
-      + `<label class="sel"><input type="checkbox" ${f.selected!==false?'checked':''}></label>`
+      + (hasBgDone ? `<div class="badge">透過済</div>` : '')
       + `<div class="name">${f.file.name}</div>`;
     div.querySelector('.rm').onclick = ()=> removeFile(f.id);
     div.querySelector('.txt').onclick = ()=> openTextEditor(f.id);
-    div.querySelector('.sel input').addEventListener('change', e=>{
+    div.querySelector('.sel').addEventListener('change', e=>{
       f.selected = e.target.checked;
-      div.classList.toggle('unselected', !f.selected);
-      updateThumbsCount();
       updateRunBtn();
     });
     thumbsEl.appendChild(div);
   });
 }
 
-function updateThumbsCount(){
-  if(thumbsCount && files.length){
-    const selCount = files.filter(f=>f.selected!==false).length;
-    thumbsCount.textContent = `${files.length}枚中 ${selCount}枚を選択中`;
-  }
-}
-
-function setAllSelected(val){
-  files.forEach(f=> f.selected = val);
-  renderThumbs();
-  updateRunBtn();
-}
-
-document.querySelectorAll('#padOpts .opt').forEach(opt=>{
-  const cb = opt.querySelector('input');
-  cb.addEventListener('change', ()=>{
-    document.querySelectorAll('#padOpts .opt').forEach(o=>{
-      o.classList.toggle('active', o.querySelector('input').checked);
-    });
-  });
-});
-function selectedPadColor(){
-  const active = document.querySelector('#padOpts .opt.active');
-  return active ? active.dataset.pad : 'transparent';
-}
-
-const sizeZoom = document.getElementById('sizeZoom');
-const sizeZoomVal = document.getElementById('sizeZoomVal');
-sizeZoom.addEventListener('input', ()=>{
-  const v = +sizeZoom.value;
-  sizeZoomVal.textContent = v===100 ? '100%（そのまま・切れる心配なし）' : `${v}%（少し拡大・端が切れる場合あり）`;
-});
-function selectedZoomPct(){ return +sizeZoom.value; }
-
-document.querySelectorAll('.opts:not(#padOpts) .opt').forEach(opt=>{
+document.querySelectorAll('.opts .opt').forEach(opt=>{
   const cb = opt.querySelector('input');
   cb.addEventListener('change', ()=>{
     opt.classList.toggle('active', cb.checked);
@@ -793,7 +762,7 @@ document.querySelectorAll('.opts:not(#padOpts) .opt').forEach(opt=>{
 });
 
 function selectedSizes(){
-  return Array.from(document.querySelectorAll('.opts:not(#padOpts) .opt')).filter(o=>o.querySelector('input').checked).map(o=>o.dataset.key);
+  return Array.from(document.querySelectorAll('.opts .opt')).filter(o=>o.querySelector('input').checked).map(o=>o.dataset.key);
 }
 
 // ── 任意サイズ ──
@@ -844,24 +813,34 @@ customAddBtn.addEventListener('click', ()=>{
   updateRunBtn();
 });
 
+function selectedFiles(){
+  return files.filter(f=> f.selected !== false);
+}
+
 function updateRunBtn(){
   const sizes = selectedSizes();
   const totalSizeCount = sizes.length + customSizes.length;
-  const selectedFiles = files.filter(f=>f.selected!==false);
+  const selFiles = selectedFiles();
   if(files.length === 0){
     runBtn.disabled = true; runBtn.textContent = '画像を追加してください';
-  } else if(selectedFiles.length === 0){
-    runBtn.disabled = true; runBtn.textContent = '書き出す画像を選んでください';
+  } else if(selFiles.length === 0){
+    runBtn.disabled = true; runBtn.textContent = 'チェックのついた画像がありません';
   } else if(totalSizeCount === 0){
     runBtn.disabled = true; runBtn.textContent = 'サイズを1つ以上選んでください';
   } else {
     runBtn.disabled = false;
-    const bgLabel = bgToggle.checked ? '（背景透過あり）' : '';
-    runBtn.textContent = `${selectedFiles.length}枚 × ${totalSizeCount}サイズ を書き出す${bgLabel}`;
+    runBtn.textContent = `${selFiles.length}枚 × ${totalSizeCount}サイズ を書き出す`;
   }
 }
-bgToggle.addEventListener('change', updateRunBtn);
 
+if(selAllBtn) selAllBtn.addEventListener('click', ()=>{
+  files.forEach(f=> f.selected = true);
+  renderThumbs(); updateRunBtn();
+});
+if(selNoneBtn) selNoneBtn.addEventListener('click', ()=>{
+  files.forEach(f=> f.selected = false);
+  renderThumbs(); updateRunBtn();
+});
 function loadImage(url){
   return new Promise((res, rej)=>{
     const img = new Image();
@@ -908,22 +887,17 @@ async function removeBackground(img){
   return outImg;
 }
 
-// 背景透過の結果をファイルごとにキャッシュし、プレビューと本番書き出しで使い回す
-// （プレビューで1回だけremove.bgを呼び、書き出し時は再度呼ばずキャッシュを使う＝無料枠の節約）
+// ファイルごとの背景透過結果をキャッシュする（同じ画像で何度もremove.bgを呼ばないため）
 async function getBgRemovedImage(f, img){
   if(f.bgRemovedUrl){
-    return await loadImage(f.bgRemovedUrl);
+    return loadImage(f.bgRemovedUrl);
   }
   const outImg = await removeBackground(img);
-  const canvas = document.createElement('canvas');
-  canvas.width = outImg.width; canvas.height = outImg.height;
-  canvas.getContext('2d').drawImage(outImg, 0, 0);
-  const blob = await canvasToBlob(canvas);
-  f.bgRemovedUrl = URL.createObjectURL(blob);
+  f.bgRemovedUrl = outImg.src;
   return outImg;
 }
 
-// アスペクト比を保って収める（枠内に収まる範囲でzoomPctぶん拡大可能）。余白色は transparent か white
+// アスペクト比を保って収める（トリミングしない・余白を追加）。余白色は transparent か white。zoomPctで拡大表示（はみ出た分は自動トリミング）
 function renderToCanvas(img, targetW, targetH, innerPad, padColor, zoomPct){
   const canvas = document.createElement('canvas');
   canvas.width = targetW; canvas.height = targetH;
@@ -937,14 +911,19 @@ function renderToCanvas(img, targetW, targetH, innerPad, padColor, zoomPct){
   const boxW = targetW - innerPad*2;
   const boxH = targetH - innerPad*2;
 
-  const zoom = (zoomPct||100)/100;
+  const zoom = (zoomPct || 100) / 100;
   const scale = Math.min(boxW/img.width, boxH/img.height) * zoom;
   const drawW = img.width*scale;
   const drawH = img.height*scale;
   const dx = (targetW - drawW)/2;
   const dy = (targetH - drawH)/2;
 
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0,0,targetW,targetH);
+  ctx.clip();
   ctx.drawImage(img, dx, dy, drawW, drawH);
+  ctx.restore();
   return canvas;
 }
 
@@ -992,6 +971,95 @@ let teTailDir = 'down';
 let teCurrentFileId = null;
 let teDragging = false;
 
+const teZoom = document.getElementById('teZoom');
+const teZoomVal = document.getElementById('teZoomVal');
+const tePadToggle = document.getElementById('tePadToggle');
+const teBgToggle = document.getElementById('teBgToggle');
+const teBgPreviewBtn = document.getElementById('teBgPreviewBtn');
+const teBackdropToggle = document.getElementById('teBackdropToggle');
+const tePreviewLabel = document.getElementById('tePreviewLabel');
+const teDownloadBtn = document.getElementById('teDownloadBtn');
+const teCopyBtn = document.getElementById('teCopyBtn');
+let tePadColor = 'transparent';
+
+// 編集画面プレビュー枠に使うサイズ（優先順位：スタンプ＞メイン＞トークタブ＞先頭の任意サイズ）
+function getPreviewTargetSize(){
+  const sizes = selectedSizes();
+  if(sizes.includes('stamp')) return SIZES.stamp;
+  if(sizes.includes('main')) return SIZES.main;
+  if(sizes.includes('tab')) return SIZES.tab;
+  if(customSizes.length) return { w:customSizes[0].w, h:customSizes[0].h, label:customSizes[0].label, pad:0 };
+  return SIZES.stamp;
+}
+
+function applyPreviewFrame(){
+  const s = getPreviewTargetSize();
+  tePreviewContainer.style.aspectRatio = `${s.w} / ${s.h}`;
+  if(tePreviewLabel) tePreviewLabel.textContent = `プレビュー：${s.label}（${s.w}×${s.h}px）`;
+  const zoomPct = +teZoom.value || 100;
+  tePreviewImg.style.transform = `scale(${zoomPct/100})`;
+  tePreviewImg.style.transformOrigin = 'center center';
+  tePreviewContainer.style.background = (tePadColor === 'white') ? '#FFFFFF'
+    : 'repeating-conic-gradient(#EEE 0% 25%, #FAFAFA 0% 50%) 50% / 16px 16px';
+  // トーク画面の背景色を選んでいる場合はそちらを優先
+  const activeBackdrop = teBackdropToggle.querySelector('button.active');
+  const backdrop = activeBackdrop ? activeBackdrop.dataset.backdrop : 'checker';
+  tePreviewContainer.classList.toggle('backdrop-light', backdrop==='light');
+  tePreviewContainer.classList.toggle('backdrop-dark', backdrop==='dark');
+  if(backdrop === 'checker'){
+    tePreviewContainer.style.background = (tePadColor === 'white') ? '#FFFFFF'
+      : 'repeating-conic-gradient(#EEE 0% 25%, #FAFAFA 0% 50%) 50% / 16px 16px';
+  }else{
+    tePreviewContainer.style.background = '';
+  }
+}
+
+teZoom.addEventListener('input', ()=>{
+  const v = +teZoom.value;
+  teZoomVal.textContent = v===100 ? '100%（そのまま・切れる心配なし）' : `${v}%（少し拡大・端が切れる場合があります）`;
+  applyPreviewFrame();
+});
+
+tePadToggle.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    tePadColor = btn.dataset.pad;
+    tePadToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
+    applyPreviewFrame();
+  });
+});
+
+teBackdropToggle.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    teBackdropToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
+    applyPreviewFrame();
+  });
+});
+
+teBgToggle.addEventListener('change', ()=>{
+  if(teBgToggle.checked){
+    teBgPreviewBtn.style.display = '';
+  }
+});
+
+teBgPreviewBtn.addEventListener('click', async ()=>{
+  const f = files.find(x=>x.id===teCurrentFileId);
+  if(!f) return;
+  teBgPreviewBtn.disabled = true;
+  teBgPreviewBtn.textContent = '処理中…';
+  try{
+    const img = await loadImage(f.url);
+    const outImg = await getBgRemovedImage(f, img);
+    tePreviewImg.src = outImg.src;
+    teBgToggle.checked = true;
+    teBgPreviewBtn.textContent = '背景透過を確認しました✓';
+    teBgPreviewBtn.classList.add('done');
+    persistFile(f);
+  }catch(e){
+    teBgPreviewBtn.textContent = '失敗しました（もう一度お試しください）';
+  }
+  teBgPreviewBtn.disabled = false;
+});
+
 teStyleToggle.querySelectorAll('button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     teBgStyle = btn.dataset.style;
@@ -1008,39 +1076,6 @@ teTailToggle.querySelectorAll('button').forEach(btn=>{
     teTailToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
     updateTeLabelStyle();
   });
-});
-
-// プレビューの背景（透明グリッド／トーク画面 明るい・暗い）を切り替え、文字の見え方を確認できるようにする
-const teBackdropToggle = document.getElementById('teBackdropToggle');
-teBackdropToggle.querySelectorAll('button').forEach(btn=>{
-  btn.addEventListener('click', ()=>{
-    teBackdropToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b===btn));
-    tePreviewContainer.classList.remove('backdrop-light','backdrop-dark');
-    if(btn.dataset.backdrop === 'light') tePreviewContainer.classList.add('backdrop-light');
-    if(btn.dataset.backdrop === 'dark') tePreviewContainer.classList.add('backdrop-dark');
-  });
-});
-
-// 実際にremove.bgで背景透過した状態をプレビューで確認する。結果はファイルごとにキャッシュし、
-// 本番の書き出し時にも使い回すので、無料枠を二重に消費しない。
-document.getElementById('teBgPreviewBtn').addEventListener('click', async ()=>{
-  const f = files.find(x=>x.id===teCurrentFileId);
-  if(!f) return;
-  const btn = document.getElementById('teBgPreviewBtn');
-  const orig = btn.textContent;
-  btn.disabled = true; btn.textContent = '処理中…';
-  try{
-    const img = await loadImage(f.url);
-    await getBgRemovedImage(f, img); // f.bgRemovedUrl がキャッシュされる
-    tePreviewImg.src = f.bgRemovedUrl;
-    btn.textContent = '背景透過を確認済み（もう一度実行）';
-    btn.classList.add('done');
-    renderThumbs();
-  }catch(e){
-    alert('背景透過に失敗しました：' + e.message);
-    btn.textContent = orig;
-  }
-  btn.disabled = false;
 });
 
 function outlineColorFor(hex){
@@ -1121,39 +1156,24 @@ function updateTeTailPosition(){
   }
 }
 
-function getPreviewTargetSize(){
-  const sizes = selectedSizes();
-  const nameMap = { main:'メイン画像', stamp:'スタンプ画像', tab:'トークタブ画像' };
-  const order = ['stamp','main','tab'];
-  for(const k of order){
-    if(sizes.includes(k)) return { w:SIZES[k].w, h:SIZES[k].h, label:nameMap[k] };
-  }
-  if(customSizes.length){
-    const c = customSizes[0];
-    return { w:c.w, h:c.h, label:c.label };
-  }
-  return null;
-}
-
-function applyPreviewFrame(){
-  const target = getPreviewTargetSize();
-  const label = document.getElementById('tePreviewLabel');
-  if(target){
-    tePreviewContainer.style.aspectRatio = `${target.w} / ${target.h}`;
-    label.textContent = `出力枠プレビュー：${target.label} ${target.w}×${target.h}px`;
-  }else{
-    tePreviewContainer.style.aspectRatio = '1 / 1';
-    label.textContent = '出力サイズが未選択のため、正方形の目安で表示しています';
-  }
-  const zoomPct = (typeof selectedZoomPct === 'function') ? selectedZoomPct() : 100;
-  tePreviewImg.style.transform = `scale(${zoomPct/100})`;
-}
-
 function openTextEditor(fileId){
   const f = files.find(x=>x.id===fileId);
   if(!f) return;
   teCurrentFileId = fileId;
-  tePreviewImg.src = f.bgRemovedUrl || f.url;
+  tePreviewImg.style.transform = 'none';
+  tePreviewImg.src = (f.editCfg.bgRemoval && f.bgRemovedUrl) ? f.bgRemovedUrl : f.url;
+
+  // 見た目の調整（ズーム・余白色・背景透過）を読み込む
+  teZoom.value = f.editCfg.zoomPct || 100;
+  teZoomVal.textContent = (+teZoom.value===100) ? '100%（そのまま・切れる心配なし）' : `${teZoom.value}%（少し拡大・端が切れる場合があります）`;
+  tePadColor = f.editCfg.padColor || 'transparent';
+  tePadToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.pad===tePadColor));
+  teBgToggle.checked = !!f.editCfg.bgRemoval;
+  teBgPreviewBtn.disabled = false;
+  teBgPreviewBtn.classList.toggle('done', !!f.bgRemovedUrl);
+  teBgPreviewBtn.textContent = f.bgRemovedUrl ? '背景透過を確認しました✓' : '背景透過して確認（remove.bgを使用）';
+  teBackdropToggle.querySelectorAll('button').forEach(b=> b.classList.toggle('active', b.dataset.backdrop==='checker'));
+
   teTextInput.value = f.textCfg.text || '';
   teFontSize.value = f.textCfg.fontPct || 12;
   teColor.value = f.textCfg.color || TE_DEFAULT_COLOR;
@@ -1167,20 +1187,10 @@ function openTextEditor(fileId){
   teTailRow.style.display = (teBgStyle==='bubble') ? '' : 'none';
   teTextLabel.style.left = (f.textCfg.xPct||50) + '%';
   teTextLabel.style.top = (f.textCfg.yPct||85) + '%';
-  applyPreviewFrame();
-  // 背景透過ボタンの状態をリセット（キャッシュ済みなら「確認済み」表示にする）
-  const bgBtn = document.getElementById('teBgPreviewBtn');
-  if(f.bgRemovedUrl){
-    bgBtn.textContent = '背景透過を確認済み（もう一度実行）';
-    bgBtn.classList.add('done');
-  }else{
-    bgBtn.textContent = '背景透過して確認（remove.bgを使用）';
-    bgBtn.classList.remove('done');
-  }
-  bgBtn.disabled = false;
   // 先に表示してからスタイル計算（枠の高さが確定してからフォントサイズを求める）
   teOverlay.style.display = 'flex';
   teBox.scrollTop = 0;
+  applyPreviewFrame();
   updateTeLabelStyle();
 }
 
@@ -1243,7 +1253,7 @@ document.getElementById('teRemoveBtn').addEventListener('click', ()=>{
   renderThumbs();
 });
 
-function currentTeCfg(){
+function collectTextCfgFromUI(){
   const xPct = parseFloat(teTextLabel.style.left) || 50;
   const yPct = parseFloat(teTextLabel.style.top) || 85;
   return {
@@ -1258,70 +1268,116 @@ function currentTeCfg(){
     stretchPct: +teStretch.value,
   };
 }
-
-// 編集中の画像（文字を重ねた状態）を、元の解像度のままPNG Blobにする
-async function renderCurrentEditBlob(){
-  const f = files.find(x=>x.id===teCurrentFileId);
-  if(!f) return null;
-  const img = await loadImage(f.bgRemovedUrl || f.url);
-  const cfg = currentTeCfg();
-  const source = (cfg.enabled) ? await drawTextOnImage(img, cfg) : img;
-  const canvas = document.createElement('canvas');
-  canvas.width = source.width; canvas.height = source.height;
-  canvas.getContext('2d').drawImage(source, 0, 0);
-  return { blob: await canvasToBlob(canvas), name: baseName(f.file.name) + '_edit.png' };
+function collectEditCfgFromUI(){
+  return {
+    zoomPct: +teZoom.value || 100,
+    padColor: tePadColor,
+    bgRemoval: teBgToggle.checked,
+  };
 }
-
-document.getElementById('teDownloadBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('teDownloadBtn');
-  const orig = btn.textContent;
-  btn.disabled = true; btn.textContent = '書き出し中…';
-  try{
-    const result = await renderCurrentEditBlob();
-    if(result){
-      const url = URL.createObjectURL(result.blob);
-      const a = document.createElement('a');
-      a.href = url; a.download = result.name;
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=> URL.revokeObjectURL(url), 3000);
-    }
-  }catch(e){
-    alert('保存に失敗しました：' + e.message);
-  }
-  btn.disabled = false; btn.textContent = orig;
-});
-
-document.getElementById('teCopyBtn').addEventListener('click', async ()=>{
-  const btn = document.getElementById('teCopyBtn');
-  const orig = btn.textContent;
-  if(!navigator.clipboard || !window.ClipboardItem){
-    alert('このブラウザは画像コピーに対応していません。「この画像を保存」をお使いください。');
-    return;
-  }
-  btn.disabled = true; btn.textContent = '処理中…';
-  try{
-    const result = await renderCurrentEditBlob();
-    if(result){
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': result.blob })]);
-      btn.textContent = 'コピーしました！';
-      setTimeout(()=> { btn.textContent = orig; btn.disabled = false; }, 1500);
-      return;
-    }
-  }catch(e){
-    alert('コピーに失敗しました：' + e.message);
-  }
-  btn.disabled = false; btn.textContent = orig;
-});
 
 document.getElementById('teSaveBtn').addEventListener('click', ()=>{
   const f = files.find(x=>x.id===teCurrentFileId);
   if(f){
-    f.textCfg = currentTeCfg();
+    f.textCfg = collectTextCfgFromUI();
+    f.editCfg = collectEditCfgFromUI();
     persistFile(f);
   }
   teOverlay.style.display = 'none';
   teCurrentFileId = null;
   renderThumbs();
+});
+
+// 編集画面の内容（ズーム・余白・背景透過・文字）を今選択中の出力サイズで最終レンダリングする
+async function renderFinalCanvasForCurrentFile(){
+  const f = files.find(x=>x.id===teCurrentFileId);
+  if(!f) return null;
+  const editCfg = collectEditCfgFromUI();
+  const textCfg = collectTextCfgFromUI();
+
+  let img = await loadImage(f.url);
+  if(editCfg.bgRemoval){
+    img = await getBgRemovedImage(f, img);
+  }
+  if(textCfg.enabled && textCfg.text.trim()){
+    img = await drawTextOnImage(img, textCfg);
+  }
+
+  const target = getPreviewTargetSize();
+  const stdKey = Object.keys(SIZES).find(k=> SIZES[k].w===target.w && SIZES[k].h===target.h && SIZES[k].label===target.label);
+  let canvas;
+  if(stdKey){
+    canvas = renderToCanvas(img, target.w, target.h, SIZES[stdKey].pad, editCfg.padColor, editCfg.zoomPct);
+  }else{
+    const custom = customSizes.find(c=> c.w===target.w && c.h===target.h && c.label===target.label) || customSizes[0];
+    const marginPct = custom ? custom.marginPct : 0;
+    canvas = renderToCanvasCover(img, target.w, target.h, marginPct, editCfg.padColor);
+  }
+  return { canvas, target, fileBase: baseName(f.file.name) };
+}
+
+teDownloadBtn.addEventListener('click', async ()=>{
+  if(!teCurrentFileId) return;
+  const prevText = teDownloadBtn.textContent;
+  teDownloadBtn.disabled = true;
+  teDownloadBtn.textContent = '処理中…';
+  try{
+    const result = await renderFinalCanvasForCurrentFile();
+    if(result){
+      const f = files.find(x=>x.id===teCurrentFileId);
+      if(f){
+        f.textCfg = collectTextCfgFromUI();
+        f.editCfg = collectEditCfgFromUI();
+        persistFile(f);
+      }
+      const blob = await canvasToBlobUnder1MB(result.canvas);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${result.fileBase}_${result.target.label}_${result.target.w}x${result.target.h}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 3000);
+      renderThumbs();
+    }
+  }catch(e){
+    alert('保存に失敗しました：' + e.message);
+  }
+  teDownloadBtn.disabled = false;
+  teDownloadBtn.textContent = prevText;
+});
+
+teCopyBtn.addEventListener('click', async ()=>{
+  if(!teCurrentFileId) return;
+  const prevText = teCopyBtn.textContent;
+  teCopyBtn.disabled = true;
+  teCopyBtn.textContent = '処理中…';
+  try{
+    const result = await renderFinalCanvasForCurrentFile();
+    if(result){
+      const f = files.find(x=>x.id===teCurrentFileId);
+      if(f){
+        f.textCfg = collectTextCfgFromUI();
+        f.editCfg = collectEditCfgFromUI();
+        persistFile(f);
+      }
+      const blob = await canvasToBlobUnder1MB(result.canvas);
+      if(navigator.clipboard && window.ClipboardItem){
+        await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]);
+        teCopyBtn.textContent = 'コピーしました✓';
+        setTimeout(()=>{ teCopyBtn.textContent = prevText; }, 1500);
+        renderThumbs();
+      }else{
+        alert('このブラウザではコピー機能に対応していません');
+        teCopyBtn.textContent = prevText;
+      }
+    }
+  }catch(e){
+    alert('コピーに失敗しました：' + e.message);
+    teCopyBtn.textContent = prevText;
+  }
+  teCopyBtn.disabled = false;
 });
 
 // 元画像(ネイティブ解像度)に文字を描き込んだ新しいImageを返す
@@ -1424,36 +1480,30 @@ function canvasToBlob(canvas){
   return new Promise(res=> canvas.toBlob(res, 'image/png'));
 }
 
-// LINEスタンプは1ファイル1MB以下が必須。通常サイズ（メイン/スタンプ/トークタブ）は
-// 小さいのでほぼ問題にならないが、細かい模様や粒子の多いイラストだと超えることがあるため、
-// 超えた場合のみ UPNG.js で減色（パレット化）して縮小する。見た目に影響しない範囲で優先的に試す。
-const LINE_MAX_BYTES = 1000000; // 余裕を見て1,000,000バイト（≒0.95MB）を上限にする
-
+// LINEの1MB上限を超える場合、UPNG.jsで段階的に色数を減らして再エンコードする
+const LINE_MAX_BYTES = 1000000;
 async function canvasToBlobUnder1MB(canvas){
-  const normalBlob = await canvasToBlob(canvas);
-  if(normalBlob.size <= LINE_MAX_BYTES) return normalBlob;
-  if(typeof UPNG === 'undefined') return normalBlob; // ライブラリが読めない場合は通常のPNGのまま返す
+  let blob = await canvasToBlob(canvas);
+  if(!blob) return blob;
+  if(blob.size <= LINE_MAX_BYTES) return blob;
+  if(typeof UPNG === 'undefined'){ return blob; } // ライブラリが無ければそのまま返す
 
   const ctx = canvas.getContext('2d');
-  const w = canvas.width, h = canvas.height;
-  const imgData = ctx.getImageData(0, 0, w, h);
-  const colorSteps = [256, 192, 128, 96, 64, 48, 32, 16];
-
-  for(const n of colorSteps){
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const steps = [256, 192, 128, 96, 64, 48, 32, 16];
+  for(const numColors of steps){
     try{
-      const buf = UPNG.encode([imgData.data.buffer], w, h, n);
-      if(buf.byteLength <= LINE_MAX_BYTES){
-        return new Blob([buf], { type: 'image/png' });
+      const pngArrBuf = UPNG.encode([imgData.data.buffer], canvas.width, canvas.height, numColors);
+      const quantBlob = new Blob([pngArrBuf], { type:'image/png' });
+      if(quantBlob.size <= LINE_MAX_BYTES){
+        return quantBlob;
       }
-    }catch(e){ break; }
+      blob = quantBlob; // 一番小さくできたものを最終手段として保持
+    }catch(e){
+      console.warn('UPNG quantize failed at', numColors, e);
+    }
   }
-  // 最後まで1MBを切れなかった場合は、一番小さくなった時点のものを返す
-  try{
-    const buf = UPNG.encode([imgData.data.buffer], w, h, colorSteps[colorSteps.length-1]);
-    return new Blob([buf], { type: 'image/png' });
-  }catch(e){
-    return normalBlob;
-  }
+  return blob;
 }
 
 function baseName(filename){
@@ -1463,7 +1513,7 @@ function baseName(filename){
 runBtn.addEventListener('click', async ()=>{
   const sizes = selectedSizes();
   const totalSizeCount = sizes.length + customSizes.length;
-  const targetFiles = files.filter(f=>f.selected!==false);
+  const targetFiles = selectedFiles();
   if(targetFiles.length===0 || totalSizeCount===0) return;
 
   if(typeof JSZip === 'undefined'){
@@ -1479,16 +1529,16 @@ runBtn.addEventListener('click', async ()=>{
   const outputs = []; // {name, blob}
   let failed = 0;
   const total = targetFiles.length * totalSizeCount;
-  const doBgRemoval = bgToggle.checked;
 
   try{
     for(const f of targetFiles){
+      const editCfg = Object.assign({}, DEFAULT_EDIT_CFG, f.editCfg || {});
       let img;
       try{ img = await loadImage(f.url); }
       catch(e){ failed += totalSizeCount; continue; }
 
-      if(doBgRemoval){
-        statusEl.textContent = f.bgRemovedUrl ? `背景透過（キャッシュ使用）… (${f.file.name})` : `背景透過中… (${f.file.name})`;
+      if(editCfg.bgRemoval){
+        statusEl.textContent = `背景透過中… (${f.file.name})`;
         try{
           img = await getBgRemovedImage(f, img);
         }catch(e){
@@ -1505,13 +1555,10 @@ runBtn.addEventListener('click', async ()=>{
       }
 
       const base = baseName(f.file.name);
-      const padColor = selectedPadColor();
-      const zoomPct = selectedZoomPct();
 
       for(const key of sizes){
         const s = SIZES[key];
-        const canvas = renderToCanvas(img, s.w, s.h, s.pad, padColor, zoomPct);
-        // LINEスタンプ用サイズは1MB以下に自動調整
+        const canvas = renderToCanvas(img, s.w, s.h, s.pad, editCfg.padColor, editCfg.zoomPct);
         const blob = await canvasToBlobUnder1MB(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
@@ -1521,7 +1568,7 @@ runBtn.addEventListener('click', async ()=>{
       }
 
       for(const c of customSizes){
-        const canvas = renderToCanvasCover(img, c.w, c.h, c.marginPct, padColor);
+        const canvas = renderToCanvasCover(img, c.w, c.h, c.marginPct, editCfg.padColor);
         const blob = await canvasToBlob(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${c.label}_${c.w}x${c.h}.png`;
@@ -1593,11 +1640,6 @@ if(clearAllBtn){
     }
   });
 }
-
-const selectAllBtn = document.getElementById('selectAllBtn');
-const deselectAllBtn = document.getElementById('deselectAllBtn');
-if(selectAllBtn) selectAllBtn.addEventListener('click', ()=> setAllSelected(true));
-if(deselectAllBtn) deselectAllBtn.addEventListener('click', ()=> setAllSelected(false));
 
 updateRunBtn();
 restoreFiles();
