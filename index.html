@@ -184,7 +184,7 @@
   }
   .te-style-toggle button.active{ border-color:var(--teal); background:var(--teal-soft); color:var(--ink); font-weight:700; }
 
-  .te-preview-container.backdrop-light{ background:#8DE055; } /* LINEのトーク画面に近い明るい背景色 */
+  .te-preview-container.backdrop-light{ background:#7494C0; } /* LINEのトーク画面に近い水色系の背景色 */
   .te-preview-container.backdrop-dark{ background:#1B1B1B; } /* トーク画面ダークモードに近い背景色 */
   .te-preview-tools{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
   .te-bgpreview-btn{
@@ -743,12 +743,15 @@ function renderThumbs(){
       + `<button class="txt${hasText?' on':''}">Aa</button>`
       + (hasBgDone ? `<div class="badge">透過済</div>` : '')
       + `<div class="name">${f.file.name}</div>`;
-    div.querySelector('.rm').onclick = ()=> removeFile(f.id);
-    div.querySelector('.txt').onclick = ()=> openTextEditor(f.id);
+    div.querySelector('.rm').onclick = e=>{ e.stopPropagation(); removeFile(f.id); };
+    div.querySelector('.txt').onclick = e=>{ e.stopPropagation(); openTextEditor(f.id); };
     div.querySelector('.sel').addEventListener('change', e=>{
       f.selected = e.target.checked;
       updateRunBtn();
     });
+    div.querySelector('.sel').addEventListener('click', e=> e.stopPropagation());
+    // 書き出し選択チェックボックス以外（サムネイル画像・名前など）をタップしたら編集画面を開く
+    div.addEventListener('click', ()=> openTextEditor(f.id));
     thumbsEl.appendChild(div);
   });
 }
@@ -1276,7 +1279,7 @@ function collectEditCfgFromUI(){
   };
 }
 
-document.getElementById('teSaveBtn').addEventListener('click', ()=>{
+function saveAndCloseEditor(){
   const f = files.find(x=>x.id===teCurrentFileId);
   if(f){
     f.textCfg = collectTextCfgFromUI();
@@ -1286,6 +1289,15 @@ document.getElementById('teSaveBtn').addEventListener('click', ()=>{
   teOverlay.style.display = 'none';
   teCurrentFileId = null;
   renderThumbs();
+}
+
+document.getElementById('teSaveBtn').addEventListener('click', saveAndCloseEditor);
+
+// 編集画面の外側（背景の暗い部分）をタップしたら、自動保存してツール画面に戻る
+teOverlay.addEventListener('click', e=>{
+  if(e.target === teOverlay){
+    saveAndCloseEditor();
+  }
 });
 
 // 編集画面の内容（ズーム・余白・背景透過・文字）を今選択中の出力サイズで最終レンダリングする
