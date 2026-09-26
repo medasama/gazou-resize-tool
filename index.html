@@ -56,9 +56,16 @@
   }
   .opt.active{ border-color:var(--teal); background:#fff; }
   .opt input{ accent-color:var(--teal); width:16px; height:16px; }
-  .opt .meta{ display:flex; flex-direction:column; }
+  .opt .meta{ display:flex; flex-direction:column; flex:1; }
   .opt .meta b{ font-family:'M PLUS Rounded 1c',sans-serif; font-size:13px; }
   .opt .meta span{ font-size:11px; color:var(--ink-soft); }
+  .opt-text-toggle{
+    display:flex; align-items:center; gap:4px; font-size:11px; color:var(--ink-soft);
+    flex-shrink:0; padding:3px 8px; border-radius:8px; background:rgba(255,255,255,.6); cursor:pointer;
+  }
+  .opt-text-toggle input{ width:14px; height:14px; accent-color:var(--gold); }
+  .check-inline{ display:flex; align-items:center; gap:5px; font-size:12px; color:var(--ink-soft); cursor:pointer; }
+  .check-inline input{ width:14px; height:14px; accent-color:var(--gold); }
 
   .toggle-row{
     display:flex; align-items:center; justify-content:space-between; gap:14px;
@@ -187,6 +194,10 @@
   .te-preview-container.backdrop-light{ background:#7494C0; } /* LINEのトーク画面に近い水色系の背景色 */
   .te-preview-container.backdrop-dark{ background:#1B1B1B; } /* トーク画面ダークモードに近い背景色 */
   .te-preview-tools{ display:flex; flex-direction:column; gap:8px; margin-top:10px; }
+  .te-overflow-warning{
+    margin:6px 0 0; font-size:11.5px; color:#B4453A; background:#FBEAEA; border-radius:8px;
+    padding:6px 10px; font-weight:700;
+  }
   .te-bgpreview-btn{
     width:100%; padding:9px; border-radius:10px; border:1.5px solid var(--teal); background:#fff; color:var(--teal);
     font-size:12.5px; font-weight:700; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
@@ -336,6 +347,7 @@
           <div class="te-text-label" id="teTextLabel">文字</div>
           <div class="te-tail" id="teTail"></div>
         </div>
+        <p class="te-overflow-warning" id="teOverflowWarning" style="display:none;">⚠️ 文字が枠からはみ出しています。文字を短くするか、文字サイズ・横幅を小さくしてください</p>
         <div class="te-preview-tools">
           <div class="te-style-toggle" id="teBackdropToggle">
             <button type="button" class="active" data-backdrop="checker">透明グリッド</button>
@@ -442,14 +454,17 @@
       <label class="opt" data-key="stamp">
         <input type="checkbox">
         <div class="meta"><b>スタンプ画像</b><span>370×320px（内側10px余白を自動確保）</span></div>
+        <label class="opt-text-toggle" title="この出力に文字も入れる"><input type="checkbox" class="text-include" checked><span>文字</span></label>
       </label>
       <label class="opt" data-key="main">
         <input type="checkbox">
         <div class="meta"><b>メイン画像</b><span>240×240px</span></div>
+        <label class="opt-text-toggle" title="この出力に文字も入れる"><input type="checkbox" class="text-include"><span>文字</span></label>
       </label>
       <label class="opt" data-key="tab">
         <input type="checkbox">
         <div class="meta"><b>トークタブ画像</b><span>96×74px</span></div>
+        <label class="opt-text-toggle" title="この出力に文字も入れる"><input type="checkbox" class="text-include"><span>文字</span></label>
       </label>
     </div>
 
@@ -460,6 +475,7 @@
       <input type="number" id="customW" placeholder="幅px" min="1">
       <span class="x">×</span>
       <input type="number" id="customH" placeholder="高さpx" min="1">
+      <label class="check-inline"><input type="checkbox" id="customIncludeText"> 文字も入れる</label>
       <button id="customAddBtn" type="button">追加</button>
     </div>
     <div class="te-field" style="margin-top:10px;">
@@ -766,19 +782,33 @@ document.querySelectorAll('.opts .opt').forEach(opt=>{
     opt.classList.toggle('active', cb.checked);
     updateRunBtn();
   });
+  // 「文字」チェックはサイズ選択チェックとは独立して切り替えられるようにする
+  const textCb = opt.querySelector('.text-include');
+  if(textCb){
+    textCb.addEventListener('click', e=> e.stopPropagation());
+    textCb.addEventListener('change', e=> e.stopPropagation());
+  }
 });
 
 function selectedSizes(){
   return Array.from(document.querySelectorAll('.opts .opt')).filter(o=>o.querySelector('input').checked).map(o=>o.dataset.key);
 }
 
+// そのサイズ（stamp/main/tab）に文字を含めるかどうか
+function textIncludedForKey(key){
+  const opt = document.querySelector(`.opts .opt[data-key="${key}"]`);
+  const cb = opt && opt.querySelector('.text-include');
+  return cb ? cb.checked : true;
+}
+
 // ── 任意サイズ ──
-let customSizes = []; // {id, label, w, h, marginPct}
+let customSizes = []; // {id, label, w, h, marginPct, includeText}
 const customListEl = document.getElementById('customList');
 const customLabel = document.getElementById('customLabel');
 const customW = document.getElementById('customW');
 const customH = document.getElementById('customH');
 const customAddBtn = document.getElementById('customAddBtn');
+const customIncludeText = document.getElementById('customIncludeText');
 const customMargin = document.getElementById('customMargin');
 const customMarginVal = document.getElementById('customMarginVal');
 
@@ -793,7 +823,12 @@ function renderCustomList(){
     const div = document.createElement('div');
     div.className = 'custom-item';
     const marginNote = c.marginPct ? `　余白${c.marginPct}%` : '';
-    div.innerHTML = `<span><b>${c.label}</b>　${c.w}×${c.h}px${marginNote}</span><button class="rm">✕ 削除</button>`;
+    div.innerHTML = `<span><b>${c.label}</b>　${c.w}×${c.h}px${marginNote}</span>`
+      + `<label class="check-inline"><input type="checkbox" class="custom-text-include" ${c.includeText?'checked':''}> 文字</label>`
+      + `<button class="rm">✕ 削除</button>`;
+    div.querySelector('.custom-text-include').addEventListener('change', e=>{
+      c.includeText = e.target.checked;
+    });
     div.querySelector('.rm').onclick = ()=>{
       customSizes = customSizes.filter(x=>x.id!==c.id);
       renderCustomList();
@@ -813,8 +848,9 @@ customAddBtn.addEventListener('click', ()=>{
   }
   const label = (customLabel.value.trim() || 'custom').replace(/[^\w\-ぁ-んァ-ヶ一-龠ー]/g, '');
   const marginPct = +customMargin.value;
-  customSizes.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,5), label, w, h, marginPct });
-  customLabel.value = ''; customW.value=''; customH.value='';
+  const includeText = customIncludeText.checked;
+  customSizes.push({ id: Date.now()+'-'+Math.random().toString(36).slice(2,5), label, w, h, marginPct, includeText });
+  customLabel.value = ''; customW.value=''; customH.value=''; customIncludeText.checked = false;
   statusEl.className = 'status'; statusEl.textContent = '';
   renderCustomList();
   updateRunBtn();
@@ -985,6 +1021,7 @@ const teBgToggle = document.getElementById('teBgToggle');
 const teBgPreviewBtn = document.getElementById('teBgPreviewBtn');
 const teBackdropToggle = document.getElementById('teBackdropToggle');
 const tePreviewLabel = document.getElementById('tePreviewLabel');
+const teOverflowWarning = document.getElementById('teOverflowWarning');
 const teDownloadBtn = document.getElementById('teDownloadBtn');
 const teCopyBtn = document.getElementById('teCopyBtn');
 let tePadColor = 'transparent';
@@ -999,10 +1036,35 @@ function getPreviewTargetSize(){
   return SIZES.stamp;
 }
 
+// 現在プレビューしているサイズが「文字」チェックを含めるかどうか（getPreviewTargetSizeと同じ優先順位）
+function getPreviewIncludesText(){
+  const sizes = selectedSizes();
+  if(sizes.includes('stamp')) return textIncludedForKey('stamp');
+  if(sizes.includes('main')) return textIncludedForKey('main');
+  if(sizes.includes('tab')) return textIncludedForKey('tab');
+  if(customSizes.length) return !!customSizes[0].includeText;
+  return textIncludedForKey('stamp');
+}
+
 function applyPreviewFrame(){
   const s = getPreviewTargetSize();
-  tePreviewContainer.style.aspectRatio = `${s.w} / ${s.h}`;
-  if(tePreviewLabel) tePreviewLabel.textContent = `プレビュー：${s.label}（${s.w}×${s.h}px）`;
+  // CSSのaspect-ratio+max-heightの組み合わせだけに任せると、実際の書き出し比率とズレることがあるため、
+  // 幅と高さを自分で計算して確実に同じ比率にする
+  const parentW = tePreviewContainer.parentElement.clientWidth || 384;
+  const maxH = Math.min(300, window.innerHeight * 0.38);
+  let boxW = parentW, boxH = boxW * (s.h / s.w);
+  if(boxH > maxH){ boxH = maxH; boxW = boxH * (s.w / s.h); }
+  tePreviewContainer.style.width = boxW + 'px';
+  tePreviewContainer.style.height = boxH + 'px';
+  const includesText = getPreviewIncludesText();
+  if(tePreviewLabel){
+    tePreviewLabel.textContent = includesText
+      ? `プレビュー：${s.label}（${s.w}×${s.h}px）`
+      : `プレビュー：${s.label}（${s.w}×${s.h}px）※このサイズは文字なしで書き出されます`;
+  }
+  teTextLabel.style.display = includesText ? '' : 'none';
+  updateTeTailPosition();
+  if(!includesText) document.getElementById('teTail').style.display = 'none';
   const zoomPct = +teZoom.value || 100;
   tePreviewImg.style.transform = `scale(${zoomPct/100})`;
   tePreviewImg.style.transformOrigin = 'center center';
@@ -1117,6 +1179,14 @@ function updateTeLabelStyle(){
     teTextLabel.style.webkitTextStroke = '0px transparent';
   }
   updateTeTailPosition();
+
+  // 文字が枠の横幅からはみ出していないかチェック（書き出し後に気づくのを防ぐ）
+  if(teOverflowWarning){
+    const isVisible = teTextLabel.style.display !== 'none' && teTextInput.value.trim();
+    const containerW = tePreviewContainer.clientWidth || 0;
+    const displayedW = teTextLabel.offsetWidth * (cfg.stretchPct / 100);
+    teOverflowWarning.style.display = (isVisible && displayedW > containerW * 0.98) ? '' : 'none';
+  }
 }
 
 function updateTeTailPosition(){
@@ -1318,16 +1388,18 @@ async function renderFinalCanvasForCurrentFile(){
 
   const target = getPreviewTargetSize();
   const stdKey = Object.keys(SIZES).find(k=> SIZES[k].w===target.w && SIZES[k].h===target.h && SIZES[k].label===target.label);
-  let canvas;
+  let canvas, includeText;
   if(stdKey){
     canvas = renderToCanvas(img, target.w, target.h, SIZES[stdKey].pad, editCfg.padColor, editCfg.zoomPct);
+    includeText = textIncludedForKey(stdKey);
   }else{
     const custom = customSizes.find(c=> c.w===target.w && c.h===target.h && c.label===target.label) || customSizes[0];
     const marginPct = custom ? custom.marginPct : 0;
     canvas = renderToCanvasCover(img, target.w, target.h, marginPct, editCfg.padColor);
+    includeText = custom ? !!custom.includeText : false;
   }
   // 文字は「書き出しサイズに収めた後」のキャンバスに描く（編集画面のプレビューと同じ位置になるように）
-  if(textCfg.enabled && textCfg.text.trim()){
+  if(includeText && textCfg.enabled && textCfg.text.trim()){
     drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, textCfg);
   }
   return { canvas, target, fileBase: baseName(f.file.name) };
@@ -1560,10 +1632,11 @@ runBtn.addEventListener('click', async ()=>{
       const base = baseName(f.file.name);
 
       // 文字は「書き出しサイズに収めた後」のキャンバスに描く（編集画面のプレビューと同じ位置になるように）
+      // サイズごとに「文字」チェックがOFFなら、そのサイズだけ文字なしで書き出す
       for(const key of sizes){
         const s = SIZES[key];
         const canvas = renderToCanvas(img, s.w, s.h, s.pad, editCfg.padColor, editCfg.zoomPct);
-        if(hasText) drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, f.textCfg);
+        if(hasText && textIncludedForKey(key)) drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, f.textCfg);
         const blob = await canvasToBlobUnder1MB(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
@@ -1574,7 +1647,7 @@ runBtn.addEventListener('click', async ()=>{
 
       for(const c of customSizes){
         const canvas = renderToCanvasCover(img, c.w, c.h, c.marginPct, editCfg.padColor);
-        if(hasText) drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, f.textCfg);
+        if(hasText && c.includeText) drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, f.textCfg);
         const blob = await canvasToBlob(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${c.label}_${c.w}x${c.h}.png`;
