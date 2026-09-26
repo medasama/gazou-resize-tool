@@ -202,7 +202,7 @@
   }
 
   .te-text-label.bubble{
-    background:#fff; border-radius:999px; padding:0.35em 0.7em;
+    background:#fff; border-radius:999px; padding:0.2em 0.42em;
     box-shadow:0 2px 6px rgba(46,58,70,.25);
   }
   .te-tail{
@@ -346,7 +346,7 @@
       </div>
 
       <div class="te-section">
-        <h4>見た目の調整（この画像だけの設定）</h4>
+        <h4>キャラクター</h4>
         <div class="te-field">
           <label>キャラクターの大きさ（ズーム）</label>
           <input type="range" id="teZoom" min="100" max="150" value="100">
@@ -363,10 +363,10 @@
           <div class="toggle-row" style="margin-bottom:0;">
             <div class="meta">
               <b>背景透過</b>
-              <span>remove.bgで背景を消す（この画像だけ）</span>
+              <span>remove.bgで背景を消す</span>
             </div>
             <label class="switch">
-              <input type="checkbox" id="teBgToggle">
+              <input type="checkbox" id="teBgToggle" checked>
               <span class="slider"></span>
             </label>
           </div>
@@ -374,51 +374,55 @@
         </div>
       </div>
 
-      <div class="te-field">
-        <label>テキスト</label>
-        <input type="text" id="teTextInput" placeholder="例：お疲れ様です">
-      </div>
-      <div class="te-field" style="margin-bottom:12px;">
-        <label>文字サイズ</label>
-        <input type="range" id="teFontSize" min="5" max="30" value="12">
-      </div>
-      <div class="te-field" style="margin-bottom:12px;">
-        <label>文字の色</label>
-        <div class="te-color-row" id="teColorRow">
-          <button type="button" class="te-swatch" data-color="#2E3A46" style="background:#2E3A46" title="こげ茶（推奨）"></button>
-          <button type="button" class="te-swatch" data-color="#FFFFFF" style="background:#FFFFFF" title="白"></button>
-          <button type="button" class="te-swatch" data-color="#E8A33D" style="background:#E8A33D" title="金"></button>
-          <button type="button" class="te-swatch" data-color="#4E8FA1" style="background:#4E8FA1" title="青緑"></button>
-          <button type="button" class="te-swatch" data-color="#D24B5A" style="background:#D24B5A" title="赤"></button>
-          <label class="te-swatch te-swatch-custom" title="自由に選ぶ">
-            <input type="color" id="teColor" value="#2E3A46">
-            <span>＋</span>
-          </label>
-          <button type="button" class="te-reset" id="teColorReset" title="推奨の色に戻す">↺ 戻す</button>
+      <div class="te-section">
+        <h4>文字</h4>
+        <div class="te-field">
+          <label>テキスト</label>
+          <input type="text" id="teTextInput" placeholder="例：お疲れ様です">
+        </div>
+        <div class="te-field">
+          <label>文字サイズ</label>
+          <input type="range" id="teFontSize" min="5" max="30" value="12">
+        </div>
+        <div class="te-field">
+          <label>文字の横幅（縦のサイズは変わりません）</label>
+          <input type="range" id="teStretch" min="70" max="160" value="100">
+        </div>
+        <div class="te-field">
+          <label>色</label>
+          <div class="te-color-row" id="teColorRow">
+            <button type="button" class="te-swatch" data-color="#2E3A46" style="background:#2E3A46" title="こげ茶（推奨）"></button>
+            <button type="button" class="te-swatch" data-color="#FFFFFF" style="background:#FFFFFF" title="白"></button>
+            <button type="button" class="te-swatch" data-color="#E8A33D" style="background:#E8A33D" title="金"></button>
+            <button type="button" class="te-swatch" data-color="#4E8FA1" style="background:#4E8FA1" title="青緑"></button>
+            <button type="button" class="te-swatch" data-color="#D24B5A" style="background:#D24B5A" title="赤"></button>
+            <label class="te-swatch te-swatch-custom" title="自由に選ぶ">
+              <input type="color" id="teColor" value="#2E3A46">
+              <span>＋</span>
+            </label>
+            <button type="button" class="te-reset" id="teColorReset" title="推奨の色に戻す">↺ 戻す</button>
+          </div>
+        </div>
+        <label class="te-checkbox" id="teOutlineRow"><input type="checkbox" id="teOutline" checked> 縁取り（アウトライン）をつける</label>
+        <div class="te-field">
+          <label>背景スタイル</label>
+          <div class="te-style-toggle" id="teStyleToggle">
+            <button type="button" class="active" data-style="outline">フチどり</button>
+            <button type="button" data-style="bubble">吹き出し（白背景）</button>
+          </div>
+        </div>
+        <div class="te-field" id="teTailRow" style="display:none;">
+          <label>吹き出しの向き（しっぽの方向）</label>
+          <div class="te-style-toggle" id="teTailToggle">
+            <button type="button" data-tail="none">なし</button>
+            <button type="button" class="active" data-tail="down">↓下</button>
+            <button type="button" data-tail="up">↑上</button>
+            <button type="button" data-tail="left">←左</button>
+            <button type="button" data-tail="right">→右</button>
+          </div>
         </div>
       </div>
-      <label class="te-checkbox" id="teOutlineRow"><input type="checkbox" id="teOutline" checked> 縁取り（アウトライン）をつける</label>
-      <div class="te-field">
-        <label>背景スタイル</label>
-        <div class="te-style-toggle" id="teStyleToggle">
-          <button type="button" class="active" data-style="outline">フチどり</button>
-          <button type="button" data-style="bubble">吹き出し（白背景）</button>
-        </div>
-      </div>
-      <div class="te-field" id="teTailRow" style="display:none;">
-        <label>吹き出しの向き（しっぽの方向）</label>
-        <div class="te-style-toggle" id="teTailToggle">
-          <button type="button" data-tail="none">なし</button>
-          <button type="button" class="active" data-tail="down">↓下</button>
-          <button type="button" data-tail="up">↑上</button>
-          <button type="button" data-tail="left">←左</button>
-          <button type="button" data-tail="right">→右</button>
-        </div>
-      </div>
-      <div class="te-field">
-        <label>横幅の伸縮（縦のサイズは変わりません）</label>
-        <input type="range" id="teStretch" min="70" max="160" value="100">
-      </div>
+
       <div class="te-buttons-top" style="margin-bottom:8px;">
         <button class="cancel" id="teDownloadBtn">このサイズで保存</button>
         <button class="cancel" id="teCopyBtn">コピー</button>
@@ -590,7 +594,7 @@ function idbTx(mode, fn){
 }
 
 // files[] の1要素を保存用レコードに変換
-const DEFAULT_EDIT_CFG = { zoomPct:100, padColor:'transparent', bgRemoval:false };
+const DEFAULT_EDIT_CFG = { zoomPct:100, padColor:'transparent', bgRemoval:true };
 const DEFAULT_TEXT_CFG = { enabled:false, text:'', xPct:50, yPct:85, fontPct:12, color:'#2E3A46', outline:true, bgStyle:'outline', tailDir:'down', stretchPct:100 };
 
 function toRecord(f){
@@ -1311,9 +1315,6 @@ async function renderFinalCanvasForCurrentFile(){
   if(editCfg.bgRemoval){
     img = await getBgRemovedImage(f, img);
   }
-  if(textCfg.enabled && textCfg.text.trim()){
-    img = await drawTextOnImage(img, textCfg);
-  }
 
   const target = getPreviewTargetSize();
   const stdKey = Object.keys(SIZES).find(k=> SIZES[k].w===target.w && SIZES[k].h===target.h && SIZES[k].label===target.label);
@@ -1324,6 +1325,10 @@ async function renderFinalCanvasForCurrentFile(){
     const custom = customSizes.find(c=> c.w===target.w && c.h===target.h && c.label===target.label) || customSizes[0];
     const marginPct = custom ? custom.marginPct : 0;
     canvas = renderToCanvasCover(img, target.w, target.h, marginPct, editCfg.padColor);
+  }
+  // 文字は「書き出しサイズに収めた後」のキャンバスに描く（編集画面のプレビューと同じ位置になるように）
+  if(textCfg.enabled && textCfg.text.trim()){
+    drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, textCfg);
   }
   return { canvas, target, fileBase: baseName(f.file.name) };
 }
@@ -1427,64 +1432,52 @@ function drawBubbleTail(ctx, x, y, boxLeft, boxTop, boxW, boxH, dir, size){
   ctx.fill();
 }
 
-function drawTextOnImage(img, cfg){
-  return new Promise(resolve=>{
-    const canvas = document.createElement('canvas');
-    canvas.width = img.width; canvas.height = img.height;
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(img, 0, 0);
+// 文字は「最終的な出力サイズのキャンバス」に直接描く。
+// （ズーム・トリミングされる前の元画像に描いてしまうと、編集画面のプレビューでの位置とズレる）
+function drawTextOnCanvas(ctx, canvasW, canvasH, cfg){
+  const fontSize = Math.round((cfg.fontPct/100) * canvasH);
+  const stretch = (cfg.stretchPct || 100) / 100;
+  ctx.font = `800 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  const x = (cfg.xPct/100) * canvasW;
+  const y = (cfg.yPct/100) * canvasH;
+  const textW = ctx.measureText(cfg.text).width;
+  const stretchedW = textW * stretch;
 
-    const fontSize = Math.round((cfg.fontPct/100) * img.height);
-    const stretch = (cfg.stretchPct || 100) / 100;
-    ctx.font = `800 ${fontSize}px 'M PLUS Rounded 1c', sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    const x = (cfg.xPct/100) * img.width;
-    const y = (cfg.yPct/100) * img.height;
-    const textW = ctx.measureText(cfg.text).width;
-    const stretchedW = textW * stretch;
+  if(cfg.bgStyle === 'bubble'){
+    const padX = fontSize*0.4, padY = fontSize*0.2;
+    const boxW = stretchedW + padX*2;
+    const boxH = fontSize + padY*2;
+    const boxLeft = x - boxW/2, boxTop = y - boxH/2;
+    const tailSize = boxH * 0.35;
 
-    if(cfg.bgStyle === 'bubble'){
-      const padX = fontSize*0.55, padY = fontSize*0.32;
-      const boxW = stretchedW + padX*2;
-      const boxH = fontSize + padY*2;
-      const boxLeft = x - boxW/2, boxTop = y - boxH/2;
-      const tailSize = boxH * 0.35;
-
-      if(cfg.tailDir && cfg.tailDir !== 'none'){
-        ctx.fillStyle = '#FFFFFF';
-        drawBubbleTail(ctx, x, y, boxLeft, boxTop, boxW, boxH, cfg.tailDir, tailSize);
-      }
+    if(cfg.tailDir && cfg.tailDir !== 'none'){
       ctx.fillStyle = '#FFFFFF';
-      ctx.shadowColor = 'rgba(0,0,0,0.18)';
-      ctx.shadowBlur = fontSize*0.15;
-      roundRectPath(ctx, boxLeft, boxTop, boxW, boxH, boxH/2);
-      ctx.fill();
-      ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+      drawBubbleTail(ctx, x, y, boxLeft, boxTop, boxW, boxH, cfg.tailDir, tailSize);
     }
+    ctx.fillStyle = '#FFFFFF';
+    ctx.shadowColor = 'rgba(0,0,0,0.18)';
+    ctx.shadowBlur = fontSize*0.15;
+    roundRectPath(ctx, boxLeft, boxTop, boxW, boxH, boxH/2);
+    ctx.fill();
+    ctx.shadowColor = 'transparent'; ctx.shadowBlur = 0;
+  }
 
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.scale(stretch, 1);
-    if(cfg.bgStyle !== 'bubble' && cfg.outline){
-      // 縮小表示でも潰れないよう、やや太めのフチ（フォントサイズの約22%）
-      ctx.lineWidth = Math.max(3, fontSize*0.22) / stretch;
-      ctx.strokeStyle = outlineColorFor(cfg.color);
-      ctx.lineJoin = 'round';
-      ctx.miterLimit = 2;
-      ctx.strokeText(cfg.text, 0, 0);
-    }
-    ctx.fillStyle = cfg.color;
-    ctx.fillText(cfg.text, 0, 0);
-    ctx.restore();
-
-    canvas.toBlob(blob=>{
-      const url = URL.createObjectURL(blob);
-      const outImg = new Image();
-      outImg.onload = ()=> resolve(outImg);
-      outImg.src = url;
-    }, 'image/png');
-  });
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(stretch, 1);
+  if(cfg.bgStyle !== 'bubble' && cfg.outline){
+    // 縮小表示でも潰れないよう、やや太めのフチ（フォントサイズの約22%）
+    ctx.lineWidth = Math.max(3, fontSize*0.22) / stretch;
+    ctx.strokeStyle = outlineColorFor(cfg.color);
+    ctx.lineJoin = 'round';
+    ctx.miterLimit = 2;
+    ctx.strokeText(cfg.text, 0, 0);
+  }
+  ctx.fillStyle = cfg.color;
+  ctx.fillText(cfg.text, 0, 0);
+  ctx.restore();
 }
 
 
@@ -1561,16 +1554,16 @@ runBtn.addEventListener('click', async ()=>{
         }
       }
 
-      if(f.textCfg && f.textCfg.enabled && f.textCfg.text.trim()){
-        statusEl.textContent = `文字を描画中… (${f.file.name})`;
-        img = await drawTextOnImage(img, f.textCfg);
-      }
+      const hasText = f.textCfg && f.textCfg.enabled && f.textCfg.text.trim();
+      if(hasText) statusEl.textContent = `文字を描画中… (${f.file.name})`;
 
       const base = baseName(f.file.name);
 
+      // 文字は「書き出しサイズに収めた後」のキャンバスに描く（編集画面のプレビューと同じ位置になるように）
       for(const key of sizes){
         const s = SIZES[key];
         const canvas = renderToCanvas(img, s.w, s.h, s.pad, editCfg.padColor, editCfg.zoomPct);
+        if(hasText) drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, f.textCfg);
         const blob = await canvasToBlobUnder1MB(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${s.label}_${s.w}x${s.h}.png`;
@@ -1581,6 +1574,7 @@ runBtn.addEventListener('click', async ()=>{
 
       for(const c of customSizes){
         const canvas = renderToCanvasCover(img, c.w, c.h, c.marginPct, editCfg.padColor);
+        if(hasText) drawTextOnCanvas(canvas.getContext('2d'), canvas.width, canvas.height, f.textCfg);
         const blob = await canvasToBlob(canvas);
         if(!blob){ failed++; continue; }
         const outName = `${base}_${c.label}_${c.w}x${c.h}.png`;
