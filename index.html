@@ -198,6 +198,18 @@
     margin:6px 0 0; font-size:11.5px; color:#B4453A; background:#FBEAEA; border-radius:8px;
     padding:6px 10px; font-weight:700;
   }
+  .te-pos-row{ display:flex; gap:18px; align-items:flex-start; }
+  .te-pos-col{ display:flex; flex-direction:column; align-items:center; gap:3px; }
+  .te-pos-tag{ font-size:10.5px; color:var(--ink-soft); font-weight:700; }
+  .te-pos-val{ font-size:10.5px; color:var(--ink-soft); }
+  .te-pos-h{ flex:1; align-items:stretch; }
+  .te-pos-h input[type="range"]{ width:100%; }
+  .te-pos-h .te-pos-tag, .te-pos-h .te-pos-val{ text-align:center; }
+  .te-pos-v{ flex:0 0 auto; }
+  .te-pos-v input[type="range"]{
+    writing-mode: vertical-lr; direction: ltr;
+    width:22px; height:64px;
+  }
   .te-bgpreview-btn{
     width:100%; padding:9px; border-radius:10px; border:1.5px solid var(--teal); background:#fff; color:var(--teal);
     font-size:12.5px; font-weight:700; cursor:pointer; font-family:'M PLUS Rounded 1c',sans-serif;
@@ -365,14 +377,19 @@
           <span id="teZoomVal" style="font-size:11.5px; color:var(--ink-soft);">100%（そのまま・切れる心配なし）</span>
         </div>
         <div class="te-field">
-          <label>横位置（左右）</label>
-          <input type="range" id="tePosX" min="-100" max="100" value="0">
-          <span id="tePosXVal" style="font-size:11.5px; color:var(--ink-soft);">中央</span>
-        </div>
-        <div class="te-field">
-          <label>縦位置（上下）</label>
-          <input type="range" id="tePosY" min="-100" max="100" value="0">
-          <span id="tePosYVal" style="font-size:11.5px; color:var(--ink-soft);">中央</span>
+          <label>キャラクターの位置</label>
+          <div class="te-pos-row">
+            <div class="te-pos-col te-pos-h">
+              <span class="te-pos-tag">左右</span>
+              <input type="range" id="tePosX" min="-100" max="100" value="0">
+              <span id="tePosXVal" class="te-pos-val">中央</span>
+            </div>
+            <div class="te-pos-col te-pos-v">
+              <span class="te-pos-tag">上下</span>
+              <input type="range" id="tePosY" min="-100" max="100" value="0">
+              <span id="tePosYVal" class="te-pos-val">中央</span>
+            </div>
+          </div>
         </div>
         <div class="te-field">
           <label>余白の色</label>
